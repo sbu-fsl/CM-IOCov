@@ -21,6 +21,9 @@ from common import (FallocOptions, FsyncOptions, FileOptions, SecondFileOptions,
                     TestDirOptions, SecondDirOptions, WriteOptions, dWriteOptions, TruncateOptions,
                     OperationSet)
 
+# Import all IOCov argument selectors
+from iocovDriver import *
+
 # The sequences we want to reach to, to reproduce known bugs.
 expected_sequence = []
 expected_sync_sequence = []
@@ -936,17 +939,17 @@ def buildJlang(op_list, length_map):
     if command == 'open':
         file = flat_list[1]
         if file in DirOptions or file in SecondDirOptions or file in TestDirOptions:
-            command_str = command_str + 'opendir ' + file.replace('/','') + ' 0777'
+            command_str = command_str + 'opendir ' + file.replace('/','') + ' ' + opendir_mode_rs()
         else:
-            command_str = command_str + 'open ' + file.replace('/','') + ' O_RDWR|O_CREAT 0777'
+            command_str = command_str + 'open ' + file.replace('/','') + ' ' + open_flags_rs() + ' ' + open_mode_rs()
 
     if command == 'creat':
         file = flat_list[1]
-        command_str = command_str + 'open ' + file.replace('/','') + ' O_RDWR|O_CREAT 0777'
+        command_str = command_str + 'open ' + file.replace('/','') + ' ' + creat_flags_rs() + ' ' + creat_mode_rs()
 
     if command == 'mkdir':
         file = flat_list[1]
-        command_str = command_str + 'mkdir ' + file.replace('/','') + ' 0777'
+        command_str = command_str + 'mkdir ' + file.replace('/','') + ' ' + mkdir_mode_rs()
 
     if command == 'mknod':
         file = flat_list[1]

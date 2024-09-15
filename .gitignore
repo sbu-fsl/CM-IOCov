@@ -30,3 +30,7 @@ others
 out
 outfile
 stat
+# Compilation files
+out_compile
+# Outfiles for setup information and test results
+outfile_202*.log

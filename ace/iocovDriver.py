@@ -1,4 +1,4 @@
-
+import random
 
 ############### Original CrashMonkey Arguments ###############
 ### opendir
@@ -21,7 +21,7 @@ DEFAULT_MKDIR_MODE = ' 0777'
 '0770': Full access for the owner and group, no access for others.
 """
 IOCOV_OPENDIR_MODE_LIST = [
-    '0777', # [CrashMonkey default], Full access for the owner, group, and others (read, write, and execute permissions for all).
+    '0777', 
     '0700',
     '0744',
     '0766',
@@ -77,9 +77,29 @@ IOCOV_OPEN_MODE_LIST = [
 '0766': Full permissions for the owner, read and write permissions for group and others.
 '0770': Full permissions for the owner and group, no permissions for others.
 """
-IOCOV_MKDIR_MODE_LIST = ['0777', '0700', '0744', '0766', '0770']
-
+IOCOV_MKDIR_MODE_LIST = [
+    '0777', 
+    '0700', 
+    '0744', 
+    '0766', 
+    '0770'
+]
 
 ############### IOCov-Improved CrashMonkey Argument Selection ###############
+
+def create_random_selector(arglist):
+    def select_random_element():
+        return random.choice(arglist)
+    return select_random_element
+
+# Create random selector functions for each syscall argument list
+opendir_mode_rs = create_random_selector(IOCOV_OPENDIR_MODE_LIST)
+open_flags_rs = create_random_selector(IOCOV_OPEN_FLAGS_LIST)
+open_mode_rs = create_random_selector(IOCOV_OPEN_MODE_LIST)
+creat_flags_rs = create_random_selector(IOCOV_OPEN_FLAGS_LIST)
+creat_mode_rs = create_random_selector(IOCOV_OPEN_MODE_LIST)
+mkdir_mode_rs = create_random_selector(IOCOV_MKDIR_MODE_LIST)
+
+
 
 
