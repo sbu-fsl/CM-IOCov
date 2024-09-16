@@ -1,5 +1,9 @@
 import random
 
+############### Constant Variables ###############
+BYTES_200_MiB = 209715200
+BYTE_POWER_MAX = 64
+
 ############### Original CrashMonkey Arguments ###############
 ### opendir
 DEFAULT_OPENDIR_MODE = ' 0777'
@@ -8,7 +12,6 @@ DEFAULT_OPEN_FLAGS = ' O_RDWR|O_CREAT'
 DEFAULT_OPEN_MODE = ' 0777'
 ### mkdir
 DEFAULT_MKDIR_MODE = ' 0777'
-
 
 ############### IOCov-Improved CrashMonkey Arguments ###############
 ### opendir
@@ -32,18 +35,15 @@ IOCOV_OPENDIR_MODE_LIST = [
 """
 O_CREAT | O_RDWR: [CrashMonkey default], Creates a file if it doesn't exist, read-write mode
 O_CREAT | O_WRONLY: Creates a file if it doesn't exist, write-only mode
-O_CREAT | O_WRONLY | O_EXCL: Creates a file if it does not exist, but fails if the file already exists (ensuring no overwriting), write-only mode
-O_CREAT | O_RDWR | O_EXCL: Creates a file if it does not exist, but fails if the file already exists (ensuring no overwriting), read-write mode
 O_CREAT | O_WRONLY | O_TRUNC: Creates a file if it doesn't exist, truncates the file if it exists, write-only mode
 O_CREAT | O_RDWR | O_TRUNC: Creates a file if it doesn't exist, truncates the file if it exists, read-write mode
 O_CREAT | O_WRONLY | O_APPEND: Creates a file if it doesn't exist, write-only mode, appends data to the end of the file
 O_CREAT | O_RDWR | O_APPEND: Creates a file if it doesn't exist, read-write mode, appends data to the end of the file
+Note: no O_EXCL should be added, as it will cause the open to fail if the file already exists.
 """
 IOCOV_OPEN_FLAGS_LIST = [
     'O_CREAT|O_RDWR',
     'O_CREAT|O_WRONLY',
-    'O_CREAT|O_WRONLY|O_EXCL',
-    'O_CREAT|O_RDWR|O_EXCL',
     'O_CREAT|O_WRONLY|O_TRUNC',
     'O_CREAT|O_RDWR|O_TRUNC',
     'O_CREAT|O_WRONLY|O_APPEND',
@@ -84,6 +84,60 @@ IOCOV_MKDIR_MODE_LIST = [
     '0766', 
     '0770'
 ]
+
+### TODO: mknod
+
+# Utility function to generate a list of powers of 2, with +1, -1 offsets
+# 200 MiB = 209,715,200 bytes.
+def generate_powers_of_2_with_limits(dev_bytes):
+    result_set = set()  # Use a set to avoid duplicates
+
+    # Loop through powers of 2, from 2^0 to 2^64
+    for i in range(BYTE_POWER_MAX + 1):  # Include 2^64, so we go up to 65
+        power_of_2 = 2 ** i
+
+        # Add power_of_2 within dev_bytes
+        if power_of_2 <= dev_bytes:
+            result_set.add(power_of_2)    
+           
+        # Add power_of_2 + 1, and power_of_2 - 1, if within dev_bytes
+        if power_of_2 + 1 <= dev_bytes:
+            result_set.add(power_of_2 + 1)
+        
+        if power_of_2 - 1 > 0 and power_of_2 - 1 <= dev_bytes:
+            result_set.add(power_of_2 - 1)
+
+    # Convert the set to a sorted list and return it
+    return sorted(result_set)
+
+def generate_byte_offsets_only_with_limits(dev_bytes):
+    result_set = set()  # Use a set to avoid duplicates
+
+    # Loop through powers of 2, from 2^0 to 2^64
+    for i in range(BYTE_POWER_MAX + 1):  # Include 2^64, so we go up to 65
+        power_of_2 = 2 ** i
+
+        # Add power_of_2 + 1, and power_of_2 - 1, if within dev_bytes
+        
+        if power_of_2 + 1 <= dev_bytes:
+            result_set.add(power_of_2 + 1)
+        
+        if power_of_2 - 1 > 0 and power_of_2 - 1 <= dev_bytes:
+            result_set.add(power_of_2 - 1)
+
+    # Convert the set to a sorted list and return it
+    return sorted(result_set)
+
+### falloc
+
+###### falloc append mode: off is the file size, no need to set
+
+########## falloc lenn
+IOCOV_FALLOC_APPEND_LENN_LIST = generate_powers_of_2_with_limits(BYTES_200_MiB)
+
+###### falloc overlap_unaligned_start: off should be 0 due to start, no need to set
+IOCOV_FALLOC_OUS_LENN_LIST = generate_byte_offsets_only_with_limits(BYTES_200_MiB)
+
 
 ############### IOCov-Improved CrashMonkey Argument Selection ###############
 
