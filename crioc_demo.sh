@@ -1,14 +1,42 @@
 #!/bin/bash
 
 # CrashMonkey-IOCov Demo Script extended from demo.sh with handling more parameters
+FS=btrfs
+WORKLOAD=seq1_demo
+DEVSZKB=204800
 
-if [ "$#" -ne 1 ]; then
-	echo "Usage : ./demo.sh <FS>"
-	exit 1
-fi
+# Parsing arguments 
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    --help)
+      echo "Usage: $0 [-f fs_name] [-w workload_name] [-s dev_sz_kb] [--help]. Example: $0 -f btrfs -w seq1_demo -s 204800"
+      exit 0
+      ;;
+    -f)
+      FS=$2
+      shift 2
+      ;;
+    -w)
+      WORKLOAD=$2
+      shift 2
+      ;;
+    -s)
+      DEVSZKB=$2
+      shift 2
+      ;;
+    *)
+      echo "Invalid option: $1"
+      exit 1
+      ;;
+  esac
+done
 
-FS=$1
-WORKLOAD_DIR="code/tests/seq1_demo"
+echo "Running CrashMonkey-IOCov Demo with the following parameters:"
+echo "Filesystem: $FS"
+echo "Workload: $WORKLOAD"
+echo "Device Size: $DEVSZKB KB"
+
+WORKLOAD_DIR="code/tests/$WORKLOAD"
 TARGET_DIR="code/tests/generated_workloads"
 TARGET_BUILD_DIR="build/tests/generated_workloads/"
 REPORT_DIR="diff_results"
@@ -49,9 +77,8 @@ echo 0 > others
 
 echo -e "\nCompleted compilation. Testing workloads on $FS.."
 if [ -d "$REPORT_DIR" ]; then rm -rf $REPORT_DIR; fi
-# Yifei: change 102400 to 204800
-# python xfsMonkey.py -f /dev/sda -d /dev/cow_ram0 -t $FS -e 102400 -u $TARGET_BUILD_DIR
-python xfsMonkey.py -f /dev/sda -d /dev/cow_ram0 -t $FS -e 204800 -u $TARGET_BUILD_DIR
+# Yifei: change 102400 to 204800, as it requires at least 200MB disk space
+python xfsMonkey.py -f /dev/sda -d /dev/cow_ram0 -t $FS -e $DEVSZKB -u $TARGET_BUILD_DIR
 
 end=`date +%s.%3N`
 run_time=$( echo "$end - $start" | bc -l)
