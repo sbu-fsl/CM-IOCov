@@ -1,15 +1,22 @@
 #!/bin/bash
 
 # CrashMonkey-IOCov Demo Script extended from demo.sh with handling more parameters
+# Usage: ./crioc_demo.sh [-f fs_name] [-w workload_name] [-s dev_sz_kb] [-l ace_sequence_len] [-n ace_nested] [-d ace_demo] [--help]
+# Example: ./crioc_demo.sh -f btrfs -w seq1_demo -s 204800 -l 1 -n False -d True
+
 FS=btrfs
 WORKLOAD=seq1_demo
 DEVSZKB=204800
+ACE_SEQ_LEN=1
+ACE_NESTED=False
+ACE_DEMO=True
 
 # Parsing arguments 
 while [[ $# -gt 0 ]]; do
   case $1 in
     --help)
-      echo "Usage: $0 [-f fs_name] [-w workload_name] [-s dev_sz_kb] [--help]. Example: $0 -f btrfs -w seq1_demo -s 204800"
+      echo "Usage: $0 [-f fs_name] [-w workload_name] [-s dev_sz_kb] [-l ace_sequence_len] [-n ace_nested] [-d ace_demo] [--help]."
+	  echo "Example: $0 -f btrfs -w seq1_demo -s 204800 -l 1 -n False -d True"
       exit 0
       ;;
     -f)
@@ -24,6 +31,18 @@ while [[ $# -gt 0 ]]; do
       DEVSZKB=$2
       shift 2
       ;;
+    -l)
+      ACE_SEQ_LEN=$2
+      shift 2
+      ;;
+    -n)
+      ACE_NESTED=$2
+      shift 2
+      ;;
+    -d)
+      ACE_DEMO=$2
+      shift 2
+      ;;	  
     *)
       echo "Invalid option: $1"
       exit 1
@@ -35,6 +54,9 @@ echo "Running CrashMonkey-IOCov Demo with the following parameters:"
 echo "Filesystem: $FS"
 echo "Workload: $WORKLOAD"
 echo "Device Size: $DEVSZKB KB"
+echo "ACE Squence Length: $ACE_SEQ_LEN"
+echo "ACE Nested: $ACE_NESTED"
+echo "ACE Demo: $ACE_DEMO"
 
 WORKLOAD_DIR="code/tests/$WORKLOAD"
 TARGET_DIR="code/tests/generated_workloads"
@@ -52,7 +74,7 @@ if [ -d "$WORKLOAD_DIR" ]; then rm -rf $WORKLOAD_DIR; fi
 
 echo "Starting workload generation.."
 start=`date +%s.%3N`
-python ace.py -l 1 -n False -d True
+python ace.py -l 1 -n $ACE_NESTED -d $ACE_DEMO
 
 end_gen=`date +%s.%3N`
 # Now let's compile the generated tests
