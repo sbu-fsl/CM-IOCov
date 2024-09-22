@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # CrashMonkey-IOCov Demo Script extended from demo.sh with handling more parameters
-# Usage: ./crioc_demo.sh [-f fs_name] [-w workload_name] [-s dev_sz_kb] [-l ace_sequence_len] [-n ace_nested] [-d ace_demo] [--help]
-# Example: ./crioc_demo.sh -f btrfs -w seq1_demo -s 204800 -l 1 -n False -d True
+# Usage: sudo ./crioc_demo.sh [-f fs_name] [-w workload_name] [-s dev_sz_kb] [-l ace_sequence_len] [-n ace_nested] [-d ace_demo] [--help]
+# Example: sudo ./crioc_demo.sh -f btrfs -w seq1_demo -s 204800 -l 1 -n False -d True
 
 FS=btrfs
 WORKLOAD=seq1_demo
@@ -57,6 +57,7 @@ echo "Device Size: $DEVSZKB KB"
 echo "ACE Squence Length: $ACE_SEQ_LEN"
 echo "ACE Nested: $ACE_NESTED"
 echo "ACE Demo: $ACE_DEMO"
+echo "----------------------------------"
 
 WORKLOAD_DIR="code/tests/$WORKLOAD"
 TARGET_DIR="code/tests/generated_workloads"
