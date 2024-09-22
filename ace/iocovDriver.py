@@ -1,7 +1,15 @@
 import random
 
 ############### Constant Variables ###############
-BYTES_200_MiB = 209715200
+
+# Example lower and upper limits for the number of bytes
+LOWER_MIN = 1
+UPPER_BYTES_200MIB = 209715200
+
+# Set the lower and upper limits based on certain constants
+LOWER_TO_USE = LOWER_MIN
+UPPER_TO_USE = UPPER_BYTES_200MIB
+
 BYTE_POWER_MAX = 64
 
 ############### Original CrashMonkey Arguments ###############
@@ -16,6 +24,9 @@ DEFAULT_MKDIR_MODE = ' 0777'
 ############### IOCov-Improved CrashMonkey Arguments ###############
 ### opendir
 ########## opendir mode (open a writable dir)
+
+# TODO: 09/16/2024 investigate other flags: 0755, 0701, 0500, etc.
+
 """
 '0777': [CrashMonkey default], Full access for the owner, group, and others (read, write, and execute permissions for all).
 '0700': Full access for the owner (read, write, and execute), no access for group or others.
@@ -87,57 +98,57 @@ IOCOV_MKDIR_MODE_LIST = [
 
 ### TODO: mknod
 
-# Utility function to generate a list of powers of 2, with +1, -1 offsets
+# Utility functions to generate a list of powers of 2, with +1, -1 offsets
+# lower_limit and upper_limit are inclusive
 # 200 MiB = 209,715,200 bytes.
-def generate_powers_of_2_with_limits(dev_bytes):
+def gen_powers_two_offsets_limits(lower_limit, upper_limit):
     result_set = set()  # Use a set to avoid duplicates
-
     # Loop through powers of 2, from 2^0 to 2^64
     for i in range(BYTE_POWER_MAX + 1):  # Include 2^64, so we go up to 65
         power_of_2 = 2 ** i
 
         # Add power_of_2 within dev_bytes
-        if power_of_2 <= dev_bytes:
-            result_set.add(power_of_2)    
+        if power_of_2 <= upper_limit and power_of_2 >= lower_limit:
+            result_set.add(power_of_2)  
            
-        # Add power_of_2 + 1, and power_of_2 - 1, if within dev_bytes
-        if power_of_2 + 1 <= dev_bytes:
+        # Add power_of_2 + 1, and power_of_2 - 1, if within the upper/lower limits
+        if power_of_2 + 1 <= upper_limit and power_of_2 + 1 >= lower_limit:
             result_set.add(power_of_2 + 1)
         
-        if power_of_2 - 1 > 0 and power_of_2 - 1 <= dev_bytes:
+        # Add power_of_2 - 1, if within the upper/lower limits
+        if power_of_2 - 1 >= lower_limit and power_of_2 - 1 <= upper_limit:
             result_set.add(power_of_2 - 1)
-
     # Convert the set to a sorted list and return it
     return sorted(result_set)
 
-def generate_byte_offsets_only_with_limits(dev_bytes):
+def gen_only_byte_offsets_limits(lower_limit, upper_limit):
     result_set = set()  # Use a set to avoid duplicates
-
     # Loop through powers of 2, from 2^0 to 2^64
     for i in range(BYTE_POWER_MAX + 1):  # Include 2^64, so we go up to 65
         power_of_2 = 2 ** i
 
         # Add power_of_2 + 1, and power_of_2 - 1, if within dev_bytes
-        
-        if power_of_2 + 1 <= dev_bytes:
+        if power_of_2 + 1 <= upper_limit and power_of_2 + 1 >= lower_limit:
             result_set.add(power_of_2 + 1)
-        
-        if power_of_2 - 1 > 0 and power_of_2 - 1 <= dev_bytes:
-            result_set.add(power_of_2 - 1)
 
+        if power_of_2 - 1 >= lower_limit and power_of_2 - 1 <= upper_limit:
+            result_set.add(power_of_2 - 1)
     # Convert the set to a sorted list and return it
     return sorted(result_set)
 
 ### falloc
 
-###### falloc append mode: off is the file size, no need to set
+###### falloc "append" mode: off is the file size, no need to set
+IOCOV_FALLOC_APPEND_LENN_LIST = gen_powers_two_offsets_limits(LOWER_TO_USE, UPPER_TO_USE)
 
-########## falloc lenn
-IOCOV_FALLOC_APPEND_LENN_LIST = generate_powers_of_2_with_limits(BYTES_200_MiB)
+###### falloc "overlap_unaligned_start" mode: off should be 0 due to start, no need to set
+IOCOV_FALLOC_OUS_LENN_LIST = gen_only_byte_offsets_limits(LOWER_TO_USE, UPPER_TO_USE)
 
-###### falloc overlap_unaligned_start: off should be 0 due to start, no need to set
-IOCOV_FALLOC_OUS_LENN_LIST = generate_byte_offsets_only_with_limits(BYTES_200_MiB)
+###### falloc "overlap_unaligned_end" mode
+IOCOV_FALLOC_OUE_LENN_LIST = gen_only_byte_offsets_limits(LOWER_TO_USE, UPPER_TO_USE)
 
+###### falloc "overlap_extend" mode
+IOCOV_FALLOC_OVEREXT_LENN_LIST = gen_powers_two_offsets_limits(LOWER_TO_USE, UPPER_TO_USE)
 
 ############### IOCov-Improved CrashMonkey Argument Selection ###############
 
@@ -147,13 +158,15 @@ def create_random_selector(arglist):
     return select_random_element
 
 # Create random selector functions for each syscall argument list
+### flags and mode
 opendir_mode_rs = create_random_selector(IOCOV_OPENDIR_MODE_LIST)
 open_flags_rs = create_random_selector(IOCOV_OPEN_FLAGS_LIST)
 open_mode_rs = create_random_selector(IOCOV_OPEN_MODE_LIST)
 creat_flags_rs = create_random_selector(IOCOV_OPEN_FLAGS_LIST)
 creat_mode_rs = create_random_selector(IOCOV_OPEN_MODE_LIST)
 mkdir_mode_rs = create_random_selector(IOCOV_MKDIR_MODE_LIST)
-
-
-
-
+### numeric bytes and offsets
+falloc_append_lenn_rs = create_random_selector(IOCOV_FALLOC_APPEND_LENN_LIST)
+falloc_ous_lenn_rs = create_random_selector(IOCOV_FALLOC_OUS_LENN_LIST)
+falloc_oue_lenn_rs = create_random_selector(IOCOV_FALLOC_OUE_LENN_LIST)
+falloc_overext_lenn_rs = create_random_selector(IOCOV_FALLOC_OVEREXT_LENN_LIST)

@@ -962,21 +962,25 @@ def buildJlang(op_list, length_map):
         write_op = flat_list[3]
         command_str = command_str + 'falloc ' + file.replace('/','') + ' ' + str(option) + ' '
         if write_op == 'append':
+            val = falloc_append_lenn_rs()
             off = str(length_map[file])
-            lenn = '32768'
-            length_map[file] += 32768
+            lenn = str(val)
+            length_map[file] += val
         elif write_op == 'overlap_unaligned_start':
+            val = falloc_ous_lenn_rs()
             off = '0'
-            lenn = '5000'
+            lenn = str(val)
         elif write_op == 'overlap_unaligned_end':
+            val = falloc_oue_lenn_rs()
             size = length_map[file]
-            off = str(size-5000)
-            lenn = '5000'
+            off = str(size-val)
+            lenn = str(val)
         elif write_op == 'overlap_extend':
+            val = falloc_overext_lenn_rs()
             size = length_map[file]
-            off = str(size-2000)
-            lenn = '5000'
-            length_map[file] += 3000
+            off = str(size - val / 2)
+            lenn = str(val)
+            length_map[file] += val - val / 2
         
         command_str = command_str + off + ' ' + lenn
 
