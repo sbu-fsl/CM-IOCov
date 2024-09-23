@@ -5,10 +5,12 @@ import random
 # Example lower and upper limits for the number of bytes
 LOWER_MIN = 1
 UPPER_BYTES_200MIB = 209715200
+# The byte size for a file should be FILE_DEV_RATE * dev_bytes where FILE_DEV_RATE is (0, 1)
+FILE_DEV_RATE = 0.5
 
 # Set the lower and upper limits based on certain constants
 LOWER_TO_USE = LOWER_MIN
-UPPER_TO_USE = UPPER_BYTES_200MIB
+UPPER_TO_USE = UPPER_BYTES_200MIB * FILE_DEV_RATE
 
 BYTE_POWER_MAX = 64
 
@@ -156,6 +158,18 @@ def create_random_selector(arglist):
     def select_random_element():
         return random.choice(arglist)
     return select_random_element
+
+# Return a random integer (e.g., offset) smaller than the given size
+def get_random_smaller_int(size):
+    if size <= 1:
+        raise ValueError("Size must be greater than 1 to return a smaller positive integer.")
+    
+    return random.randint(1, size - 1)
+
+# Special case: return a random number with special lower and upper limits
+def customized_rs_limits(gen_func, lower_limit, upper_limit):
+    rs_func =  create_random_selector(gen_func(lower_limit, upper_limit))
+    return rs_func()
 
 # Create random selector functions for each syscall argument list
 ### flags and mode

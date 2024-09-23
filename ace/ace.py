@@ -976,11 +976,19 @@ def buildJlang(op_list, length_map):
             off = str(size-val)
             lenn = str(val)
         elif write_op == 'overlap_extend':
-            val = falloc_overext_lenn_rs()
+            # Yifei: Here, the size is 32768
             size = length_map[file]
-            off = str(size - val / 2)
+            # Generate off_subtra which must be smaller than size
+            off_subtra = get_random_smaller_int(size)
+            off = str(size - off_subtra)
+            # lenn/val should be greater than off_subtra, and less than device size
+            val = customized_rs_limits(gen_powers_two_offsets_limits, off_subtra, UPPER_TO_USE)
+            print('val:', val)
+            print('type(val):', type(val))
+            print('off_subtra: ', off_subtra)
+            print('type(off_subtra):', type(off_subtra))
             lenn = str(val)
-            length_map[file] += val - val / 2
+            length_map[file] += val - off_subtra
         
         command_str = command_str + off + ' ' + lenn
 

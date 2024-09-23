@@ -2,8 +2,8 @@
 
 # CrashMonkey-IOCov Demo Script extended from demo.sh with handling more parameters
 # Usage: sudo ./crioc_demo.sh [-f fs_name] [-w workload_name] [-s dev_sz_kb] [-l ace_sequence_len] [-n ace_nested] [-d ace_demo] [--help]
-# Example: sudo ./crioc_demo.sh -f btrfs -w seq1_demo -s 204800 -l 1 -n False -d True
-# sudo ./crioc_demo.sh -f btrfs -w seq2 -s 204800 -l 2 -n False -d False
+# Default: sudo ./crioc_demo.sh -f btrfs -w seq1_demo -s 204800 -l 1 -n False -d True
+# Seq2 Example: sudo ./crioc_demo.sh -f btrfs -w seq2 -s 204800 -l 2 -n False -d False
 
 FS=btrfs
 WORKLOAD=seq1_demo

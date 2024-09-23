@@ -34,3 +34,9 @@ stat
 out_compile
 # Outfiles for setup information and test results
 outfile_202*.log
+# ACE j-lang files
+ace/j-lang*
+# j-lang cpp files
+code/tests/seq*/j-lang*.cpp
+# j-lang files
+code/tests/seq*/j-lang-files/j-lang*
