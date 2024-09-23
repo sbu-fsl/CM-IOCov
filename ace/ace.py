@@ -983,10 +983,6 @@ def buildJlang(op_list, length_map):
             off = str(size - off_subtra)
             # lenn/val should be greater than off_subtra, and less than device size
             val = customized_rs_limits(gen_powers_two_offsets_limits, off_subtra, UPPER_TO_USE)
-            print('val:', val)
-            print('type(val):', type(val))
-            print('off_subtra: ', off_subtra)
-            print('type(off_subtra):', type(off_subtra))
             lenn = str(val)
             length_map[file] += val - off_subtra
         
