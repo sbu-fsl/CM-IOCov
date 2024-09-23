@@ -3,6 +3,7 @@
 # CrashMonkey-IOCov Demo Script extended from demo.sh with handling more parameters
 # Usage: sudo ./crioc_demo.sh [-f fs_name] [-w workload_name] [-s dev_sz_kb] [-l ace_sequence_len] [-n ace_nested] [-d ace_demo] [--help]
 # Example: sudo ./crioc_demo.sh -f btrfs -w seq1_demo -s 204800 -l 1 -n False -d True
+# sudo ./crioc_demo.sh -f btrfs -w seq2 -s 204800 -l 2 -n False -d False
 
 FS=btrfs
 WORKLOAD=seq1_demo
@@ -75,7 +76,7 @@ if [ -d "$WORKLOAD_DIR" ]; then rm -rf $WORKLOAD_DIR; fi
 
 echo "Starting workload generation.."
 start=`date +%s.%3N`
-python ace.py -l 1 -n $ACE_NESTED -d $ACE_DEMO
+python ace.py -l $ACE_SEQ_LEN -n $ACE_NESTED -d $ACE_DEMO
 
 end_gen=`date +%s.%3N`
 # Now let's compile the generated tests
