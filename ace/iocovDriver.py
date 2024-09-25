@@ -162,7 +162,7 @@ def create_random_selector(arglist):
 # Return a random integer (e.g., offset) smaller than the given size
 def get_random_smaller_int(size):
     if size <= 1:
-        raise ValueError("Size must be greater than 1 to return a smaller positive integer.")
+        return 0
     
     return random.randint(1, size - 1)
 
