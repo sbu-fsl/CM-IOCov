@@ -1027,21 +1027,24 @@ def buildJlang(op_list, length_map):
         command_str = command_str + 'dwrite ' + file.replace('/','') + ' '
         
         if write_op == 'append':
-            lenn = '32768'
+            val = falloc_append_lenn_rs()
+            lenn = str(val)
             if file not in length_map:
                 length_map[file] = 0
                 off = '0'
             else:
                 off = str(length_map[file])
-            length_map[file] += 32768
+            length_map[file] += val
 
         elif write_op == 'overlap_start':
+            val = falloc_ous_lenn_rs()
             off = '0'
-            lenn = '8192'
+            lenn = str(val)
         elif write_op == 'overlap_end':
             size = length_map[file]
-            off = str(size-8192)
-            lenn = '8192'
+            off_subtra = get_random_smaller_int(size)
+            off = str(size-off_subtra)
+            lenn = str(off_subtra)
 
         command_str = command_str + off + ' ' + lenn
     
@@ -1052,21 +1055,24 @@ def buildJlang(op_list, length_map):
         command_str = command_str + 'mmapwrite ' + file.replace('/','') + ' '
         
         if write_op == 'append':
-            lenn = '32768'
+            val = falloc_append_lenn_rs()
+            lenn = str(val)
             if file not in length_map:
                 length_map[file] = 0
                 off = '0'
             else:
                 off = str(length_map[file])
-            length_map[file] += 32768
+            length_map[file] += val
         
         elif write_op == 'overlap_start':
+            val = falloc_ous_lenn_rs()
             off = '0'
-            lenn = '8192'
+            lenn = str(val)
         elif write_op == 'overlap_end':
             size = length_map[file]
-            off = str(size-8192)
-            lenn = '8192'
+            off_subtra = get_random_smaller_int(size)
+            off = str(size-off_subtra)
+            lenn = str(off_subtra)
         
         command_str = command_str + off + ' ' + lenn + '\ncheckpoint ' + ret
 
