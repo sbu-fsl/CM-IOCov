@@ -976,7 +976,7 @@ def buildJlang(op_list, length_map):
             off = str(size-val)
             lenn = str(val)
         elif write_op == 'overlap_extend':
-            # Yifei: Here, the size is 32768
+            # Yifei: the default size here was 32768, but we altered it to be generated randomly
             size = length_map[file]
             # Generate off_subtra which must be smaller than size
             off_subtra = get_random_smaller_int(size)

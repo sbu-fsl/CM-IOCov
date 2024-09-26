@@ -1,0 +1,27 @@
+# define
+test
+A
+A/C
+B
+foo
+bar
+A/foo
+A/bar
+B/foo
+B/bar
+A/C/foo
+A/C/bar
+
+# declare
+local_checkpoint
+
+# setup
+
+
+# run
+open foo O_CREAT|O_WRONLY|O_APPEND 0700
+write foo 0 2048
+falloc foo FALLOC_FL_ZERO_RANGE|FALLOC_FL_KEEP_SIZE 580 65535
+fsync foo
+checkpoint 1
+close foo

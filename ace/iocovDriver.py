@@ -6,7 +6,7 @@ import random
 LOWER_MIN = 1
 UPPER_BYTES_200MIB = 209715200
 # The byte size for a file should be FILE_DEV_RATE * dev_bytes where FILE_DEV_RATE is (0, 1)
-FILE_DEV_RATE = 0.1
+FILE_DEV_RATE = 0.01
 
 # Set the lower and upper limits based on certain constants
 LOWER_TO_USE = LOWER_MIN
