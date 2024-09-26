@@ -1111,10 +1111,12 @@ def buildJlang(op_list, length_map):
         trunc_op = flat_list[2]
         command_str = command_str + command + ' ' + file.replace('/','') + ' '
         if trunc_op == 'aligned':
-            len = '0'
+            val = truncate_aligned_len_rs()
+            len = str(val)
             length_map[file] = 0
         elif trunc_op == 'unaligned':
-            len = '2500'
+            val = truncate_unaligned_len_rs()
+            len = str(val)
         command_str = command_str + len
 
     return command_str

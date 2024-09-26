@@ -123,6 +123,20 @@ def gen_powers_two_offsets_limits(lower_limit, upper_limit):
     # Convert the set to a sorted list and return it
     return sorted(result_set)
 
+# Utility function to generate a list of powers of 2, with no offsets
+def gen_only_powers_two_limits(lower_limit, upper_limit):
+    result_set = set()  # Use a set to avoid duplicates
+    # Loop through powers of 2, from 2^0 to 2^64
+    for i in range(BYTE_POWER_MAX + 1):  # Include 2^64, so we go up to 65
+        power_of_2 = 2 ** i
+
+        # Add power_of_2 within dev_bytes
+        if power_of_2 <= upper_limit and power_of_2 >= lower_limit:
+            result_set.add(power_of_2)
+    # Convert the set to a sorted list and return it
+    return sorted(result_set)
+
+# Utility function to generate a list of byte offsets, with no powers of 2
 def gen_only_byte_offsets_limits(lower_limit, upper_limit):
     result_set = set()  # Use a set to avoid duplicates
     # Loop through powers of 2, from 2^0 to 2^64
@@ -138,19 +152,25 @@ def gen_only_byte_offsets_limits(lower_limit, upper_limit):
     # Convert the set to a sorted list and return it
     return sorted(result_set)
 
-### falloc
+### falloc/write
 
 ###### falloc/write "append" mode: off is the file size, no need to set
 IOCOV_FALLOC_APPEND_LENN_LIST = gen_powers_two_offsets_limits(LOWER_TO_USE, UPPER_TO_USE)
 
-###### falloc "overlap_unaligned_start" mode: off should be 0 due to start, no need to set
+###### falloc/write "overlap_unaligned_start" mode: off should be 0 due to start, no need to set
 IOCOV_FALLOC_OUS_LENN_LIST = gen_only_byte_offsets_limits(LOWER_TO_USE, UPPER_TO_USE)
 
-###### falloc "overlap_unaligned_end" mode
+###### falloc/write "overlap_unaligned_end" mode
 IOCOV_FALLOC_OUE_LENN_LIST = gen_only_byte_offsets_limits(LOWER_TO_USE, UPPER_TO_USE)
 
-###### falloc "overlap_extend" mode
+###### falloc/write "overlap_extend" mode
 IOCOV_FALLOC_OVEREXT_LENN_LIST = gen_powers_two_offsets_limits(LOWER_TO_USE, UPPER_TO_USE)
+
+###### truncate "aligned" mode
+IOCOV_TRUNCATE_ALIGHED_LEN_LIST = gen_only_powers_two_limits(LOWER_TO_USE, UPPER_TO_USE)
+
+###### truncate "unaligned" mode
+IOCOV_TRUNCATE_UNALIGHED_LEN_LIST = gen_only_byte_offsets_limits(LOWER_TO_USE, UPPER_TO_USE)
 
 ############### IOCov-Improved CrashMonkey Argument Selection ###############
 
@@ -184,3 +204,5 @@ falloc_append_lenn_rs = create_random_selector(IOCOV_FALLOC_APPEND_LENN_LIST)
 falloc_ous_lenn_rs = create_random_selector(IOCOV_FALLOC_OUS_LENN_LIST)
 falloc_oue_lenn_rs = create_random_selector(IOCOV_FALLOC_OUE_LENN_LIST)
 falloc_overext_lenn_rs = create_random_selector(IOCOV_FALLOC_OVEREXT_LENN_LIST)
+truncate_aligned_len_rs = create_random_selector(IOCOV_TRUNCATE_ALIGHED_LEN_LIST)
+truncate_unaligned_len_rs = create_random_selector(IOCOV_TRUNCATE_UNALIGHED_LEN_LIST)
