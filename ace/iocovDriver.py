@@ -6,7 +6,7 @@ import random
 LOWER_MIN = 1
 UPPER_BYTES_200MIB = 209715200
 # The byte size for a file should be FILE_DEV_RATE * dev_bytes where FILE_DEV_RATE is (0, 1)
-FILE_DEV_RATE = 0.5
+FILE_DEV_RATE = 0.1
 
 # Set the lower and upper limits based on certain constants
 LOWER_TO_USE = LOWER_MIN
@@ -140,7 +140,7 @@ def gen_only_byte_offsets_limits(lower_limit, upper_limit):
 
 ### falloc
 
-###### falloc "append" mode: off is the file size, no need to set
+###### falloc/write "append" mode: off is the file size, no need to set
 IOCOV_FALLOC_APPEND_LENN_LIST = gen_powers_two_offsets_limits(LOWER_TO_USE, UPPER_TO_USE)
 
 ###### falloc "overlap_unaligned_start" mode: off should be 0 due to start, no need to set
