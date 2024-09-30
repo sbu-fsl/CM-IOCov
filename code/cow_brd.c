@@ -19,7 +19,6 @@
 #include <linux/radix-tree.h>
 #include <linux/fs.h>
 #include <linux/slab.h>
-
 #include <asm/uaccess.h>
 
 #include "disk_wrapper_ioctl.h"
@@ -585,7 +584,7 @@ static struct brd_device *brd_alloc(int i)
   (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 6, 0) && \
     LINUX_VERSION_CODE < KERNEL_VERSION(5, 6, 7))
   blk_queue_flag_set(QUEUE_FLAG_DISCARD, brd->brd_queue);
-#else
+#elif (LINUX_VERSION_CODE < KERNEL_VERSION(6, 8, 0))
   queue_flag_set_unlocked(QUEUE_FLAG_DISCARD, brd->brd_queue);
 #endif
 
@@ -674,7 +673,8 @@ static struct kobject *brd_probe(dev_t dev, int *part, void *data)
   LINUX_VERSION_CODE >= KERNEL_VERSION(5, 5, 0) && \
      LINUX_VERSION_CODE < KERNEL_VERSION(5, 5, 3) || \
   (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 6, 0) && \
-    LINUX_VERSION_CODE < KERNEL_VERSION(5, 6, 7))
+    LINUX_VERSION_CODE < KERNEL_VERSION(5, 6, 7)) || \
+  (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 8, 0))
   kobj = brd ? get_disk_and_module(brd->brd_disk) : NULL;
 #else
   kobj = brd ? get_disk(brd->brd_disk) : NULL;

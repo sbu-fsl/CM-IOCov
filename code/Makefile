@@ -9,7 +9,7 @@ GOTPSSO = -shared -fPIC
 BUILD_DIR = $(CURDIR)/../build
 TESTING := testing/log_on_off testing/test_get_log_ent_size
 
-MODULES = cow_brd disk_wrapper
+MODULES = cow_brd_6_8 disk_wrapper
 obj-m := $(addsuffix .o, $(MODULES))
 KDIR := /lib/modules/$(KERNEL_VERSION)/build
 
