@@ -293,15 +293,15 @@ static void brd_submit_bio(struct bio *bio)
 	sector_t sector = bio->bi_iter.bi_sector;
 	struct bio_vec bvec;
 	struct bvec_iter iter;
-
+	printk(KERN_WARNING "cow_brd:submit_bio: At line 296\n");
 	bio_for_each_segment(bvec, bio, iter) {
 		unsigned int len = bvec.bv_len;
 		int err;
-
+		printk(KERN_WARNING "cow_brd:submit_bio: At line 300\n");
 		/* Don't support un-aligned buffer */
 		WARN_ON_ONCE((bvec.bv_offset & (SECTOR_SIZE - 1)) ||
 				(len & (SECTOR_SIZE - 1)));
-
+		printk(KERN_WARNING "cow_brd:submit_bio: At line 304\n");
 		err = brd_do_bvec(brd, bvec.bv_page, len, bvec.bv_offset,
 				  bio->bi_opf, sector);
 		if (err) {
@@ -312,6 +312,7 @@ static void brd_submit_bio(struct bio *bio)
 			bio_io_error(bio);
 			return;
 		}
+		printk(KERN_WARNING "cow_brd:submit_bio: At line 315\n");
 		sector += len >> SECTOR_SHIFT;
 	}
 

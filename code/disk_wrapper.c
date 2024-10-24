@@ -41,7 +41,7 @@ struct disk_write_op {
 };
 
 static int major_num = 0;
-
+static struct lock_class_key sd_bio_compl_lkclass;
 static struct hwm_device {
   unsigned long size;
   spinlock_t lock;
@@ -865,7 +865,7 @@ static int __init disk_wrapper_init(void) {
   #if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 8, 0))
     bdev_handle = bdev_open_by_path(strim(target_device_path), BLK_OPEN_READ, NULL, NULL);
     if (IS_ERR(bdev_handle)) {
-      printk(KERN_WARNING "hwm: unable to grab underlying device handle\n");
+      printk(KERN_WARNING "hwm: unable to grab underlying device handle with path %s\n", target_device_path);
       goto out;
     }
     target_device = bdev_handle->bdev;
@@ -962,11 +962,14 @@ static int __init disk_wrapper_init(void) {
 
   // And the gendisk structure.
   #if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 8, 0)
-    Device.gd = blk_alloc_disk(NUMA_NO_NODE);
+    Device.gd = blk_alloc_disk(1);
+    //Device.gd = __alloc_disk_node(1, NUMA_NO_NODE, &sd_bio_compl_lkclass);
+    printk(KERN_INFO "hwm: Allocating disk using __alloc_disk_node \n");
   #else 
     Device.gd = alloc_disk(1);
   #endif
   if (!Device.gd) {
+    printk(KERN_INFO "hwm: alloc_disk failure\n");
     goto out;
   }
 
@@ -984,6 +987,7 @@ static int __init disk_wrapper_init(void) {
     blk_queue_make_request(Device.gd->queue, disk_wrapper_bio);
   #endif
   if (Device.gd->queue == NULL) {
+    printk(KERN_INFO "hwm: Device.gd queue null\n");
     goto out;
   }
   // Make this queue have the same flags as the queue we're feeding into.
@@ -997,10 +1001,12 @@ static int __init disk_wrapper_init(void) {
     LINUX_VERSION_CODE < KERNEL_VERSION(4, 5, 0))
   Device.gd->queue->flush_flags = flush_flags;
 #endif
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 8, 0))
   Device.gd->queue->queue_flags = queue_flags;
   Device.gd->queue->queuedata = &Device;
   printk(KERN_INFO "hwm: working with queue with:\n\tflags 0x%lx\n",
       Device.gd->queue->queue_flags);
+#endif
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 12, 0) && \
     LINUX_VERSION_CODE < KERNEL_VERSION(3, 14, 0)) || \
   (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 16, 0) && \
@@ -1012,8 +1018,12 @@ static int __init disk_wrapper_init(void) {
   printk(KERN_INFO "hwm: working with queue with:\n\tflush flags 0x%lx\n",
       Device.gd->queue->flush_flags);
 #endif
-
-  add_disk(Device.gd);
+  printk(KERN_INFO "hwm: Before add_disk");
+  int err = add_disk(Device.gd);
+  if(err) {
+    printk(KERN_INFO "hwm: Error in adding disk");
+    goto out;
+  }
 
   printk(KERN_NOTICE "hwm: initialized\n");
   return 0;

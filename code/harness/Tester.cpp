@@ -52,8 +52,8 @@
 #define WRAPPER_INSMOD      "insmod " WRAPPER_MODULE_NAME " target_device_path="
 #define WRAPPER_INSMOD2      " flags_device_path="
 #define WRAPPER_RMMOD       "rmmod " WRAPPER_MODULE_NAME
-
-#define COW_BRD_MODULE_NAME "../build/cow_brd.ko"
+//TODO (Tanya): Changed for 6.8 -> Need to revert
+#define COW_BRD_MODULE_NAME "../build/cow_brd_6_8.ko"
 #define COW_BRD_INSMOD      "insmod " COW_BRD_MODULE_NAME " num_disks="
 #define COW_BRD_INSMOD2      " num_snapshots="
 #define COW_BRD_INSMOD3      " disk_size="
@@ -245,6 +245,7 @@ void Tester::getCompleteRunDiskClone() {
 }
 
 int Tester::insert_cow_brd() {
+  cerr << "Error in Cow_BRD_FD" << cow_brd_fd << endl;
   if (cow_brd_fd < 0) {
     string command(COW_BRD_INSMOD);
     command += NUM_DISKS;
@@ -255,8 +256,10 @@ int Tester::insert_cow_brd() {
     if (!verbose) {
       command += SILENT;
     }
-    if (system(command.c_str()) != 0) {
+    int command_result = system(command.c_str());
+    if (command_result < 0) {
       cow_brd_fd = -1;
+      cerr << "Error Wrapper insert in insert cow brd:" << command_result << endl;
       return WRAPPER_INSERT_ERR;
     }
   }
@@ -266,6 +269,7 @@ int Tester::insert_cow_brd() {
     if (system(COW_BRD_RMMOD) != 0) {
       cow_brd_fd = -1;
       cow_brd_inserted = false;
+      cerr << "Error Wrapper remove in insert cow brd" << endl;
       return WRAPPER_REMOVE_ERR;
     }
   }
@@ -297,6 +301,7 @@ int Tester::remove_cow_brd() {
       
      if (res != 0) {
         cow_brd_inserted = true;
+        cerr << "Unable to remove cow_brd device" << command.c_str() << endl;
         return WRAPPER_REMOVE_ERR;
       }
      
@@ -316,6 +321,7 @@ int Tester::insert_wrapper() {
       command += SILENT;
     }
     if (system(command.c_str()) != 0) {
+      cerr << "Error inserting kernel wrapper module" << command.c_str() << endl;
       wrapper_inserted = false;
       return WRAPPER_INSERT_ERR;
     }
@@ -605,6 +611,7 @@ int Tester::format_drive() {
     command += SILENT;
   }
   if (system(command.c_str()) != 0) {
+    cerr << "Error formatting test drive" << device_mount << command.c_str() << endl;
     return FMT_FMT_ERR;
   }
   return SUCCESS;
@@ -1174,7 +1181,7 @@ void Tester::cleanup_harness() {
   }
 
   if (remove_cow_brd() != SUCCESS) {
-    cerr << "Unable to remove cow_brd device" << endl;
+    //cerr << "Unable to remove cow_brd device" << endl;
     permuter_unload_class();
     test_unload_class();
     return;
