@@ -26,6 +26,7 @@
 #include <linux/uaccess.h>
 #include <asm/uaccess.h>
 
+
 #include "disk_wrapper_ioctl.h"
 #include "bio_alias.h"
 
@@ -66,7 +67,7 @@ struct brd_device {
 /*
  * Look up and return a brd's page for a given sector.
  */
-static DEFINE_MUTEX(brd_mutex);
+//static DEFINE_MUTEX(brd_mutex);
 static struct page *brd_lookup_page(struct brd_device *brd, sector_t sector)
 {
   pgoff_t idx;
@@ -97,13 +98,18 @@ static int brd_insert_page(struct brd_device *brd, sector_t sector, gfp_t gfp)
 {
 	pgoff_t idx;
 	struct page *page, *cur;
+	struct page *parent_page = NULL;
+	void *dst, *parent_src = NULL;
 	int ret = 0;
 
 	page = brd_lookup_page(brd, sector);
 	if (page)
 		return 0;
-
-	page = alloc_page(gfp | __GFP_ZERO | __GFP_HIGHMEM);
+	gfp |= __GFP_ZERO;
+	#ifndef CONFIG_BLK_DEV_XIP
+		gfp |= __GFP_HIGHMEM;
+	#endif	
+	page = alloc_page(gfp);
 	if (!page)
 		return -ENOMEM;
 
@@ -125,6 +131,16 @@ static int brd_insert_page(struct brd_device *brd, sector_t sector, gfp_t gfp)
 
 	xa_unlock(&brd->brd_pages);
 
+	if (brd->parent_brd) {
+		parent_page = brd_lookup_page(brd->parent_brd, sector);
+		if (parent_page) {
+			dst = kmap_atomic(page);
+			parent_src = kmap_atomic(parent_page);
+			memcpy(dst, parent_src, PAGE_SIZE);
+			kunmap_atomic(parent_src);
+			kunmap_atomic(dst);
+		}
+	}
 	return ret;
 }
 
@@ -293,15 +309,14 @@ static void brd_submit_bio(struct bio *bio)
 	sector_t sector = bio->bi_iter.bi_sector;
 	struct bio_vec bvec;
 	struct bvec_iter iter;
-	printk(KERN_WARNING "cow_brd:submit_bio: At line 296\n");
+	printk(KERN_WARNING "cow_brd: In brd_submit_bio Line : 312\n");
 	bio_for_each_segment(bvec, bio, iter) {
 		unsigned int len = bvec.bv_len;
 		int err;
-		printk(KERN_WARNING "cow_brd:submit_bio: At line 300\n");
+		printk(KERN_WARNING "cow_brd: In brd_submit_bio Line : 316\n");
 		/* Don't support un-aligned buffer */
 		WARN_ON_ONCE((bvec.bv_offset & (SECTOR_SIZE - 1)) ||
 				(len & (SECTOR_SIZE - 1)));
-		printk(KERN_WARNING "cow_brd:submit_bio: At line 304\n");
 		err = brd_do_bvec(brd, bvec.bv_page, len, bvec.bv_offset,
 				  bio->bi_opf, sector);
 		if (err) {
@@ -312,36 +327,103 @@ static void brd_submit_bio(struct bio *bio)
 			bio_io_error(bio);
 			return;
 		}
-		printk(KERN_WARNING "cow_brd:submit_bio: At line 315\n");
+		printk(KERN_WARNING "cow_brd: In brd_submit_bio Line : 330\n");
 		sector += len >> SECTOR_SHIFT;
 	}
-
+	printk(KERN_WARNING "cow_brd: In brd_submit_bio Line : 333\n");
 	bio_endio(bio);
 }
+#ifdef CONFIG_BLK_DEV_XIP
+static int brd_direct_access(struct block_device *bdev, sector_t sector,
+      void **kaddr, unsigned long *pfn)
+{
+  struct brd_device *brd = bdev->bd_disk->private_data;
+  struct page *page;
 
+  if (!brd)
+    return -ENODEV;
+  if (sector & (PAGE_SECTORS-1))
+    return -EINVAL;
+  if (sector + PAGE_SECTORS > get_capacity(bdev->bd_disk))
+    return -ERANGE;
+  page = brd_insert_page(brd, sector);
+  if (!page)
+    return -ENOMEM;
+  *kaddr = page_address(page);
+  *pfn = page_to_pfn(page);
+
+  return 0;
+}
+#endif
+
+static int brd_ioctl(struct block_device *bdev, fmode_t mode,
+      unsigned int cmd, unsigned long arg)
+{
+  int error = 0;
+  struct brd_device *brd = bdev->bd_disk->private_data;
+
+  switch (cmd) {
+    case COW_BRD_SNAPSHOT:
+      if (brd->is_snapshot) {
+        return -ENOTTY;
+      }
+      brd->is_writable = false;
+      break;
+    case COW_BRD_UNSNAPSHOT:
+      if (brd->is_snapshot) {
+        return -ENOTTY;
+      }
+      brd->is_writable = true;
+      break;
+    case COW_BRD_RESTORE_SNAPSHOT:
+      if (!brd->is_snapshot) {
+        return -ENOTTY;
+      }
+      brd_free_pages(brd);
+      break;
+    case COW_BRD_WIPE:
+      if (brd->is_snapshot) {
+        return -ENOTTY;
+      }
+      // Assumes no snapshots are being used right now.
+      brd_free_pages(brd);
+      break;
+    default:
+      error = -ENOTTY;
+  }
+
+  return error;
+}
 static const struct block_device_operations brd_fops = {
 	.owner =		THIS_MODULE,
 	.submit_bio =		brd_submit_bio,
+	.ioctl =    brd_ioctl,
+#ifdef CONFIG_BLK_DEV_XIP
+  	.direct_access =  brd_direct_access,
+#endif
 };
 
 /*
  * And now the modules code and kernel interface.
  */
 static int rd_nr = CONFIG_BLK_DEV_RAM_COUNT;
-module_param(rd_nr, int, 0444);
-MODULE_PARM_DESC(rd_nr, "Maximum number of brd devices");
-
+int major_num = 0;
+static int num_disks = 1;
+static int num_snapshots = 1;
+int disk_size = DEFAULT_COW_RD_SIZE;
 unsigned long rd_size = CONFIG_BLK_DEV_RAM_SIZE;
-module_param(rd_size, ulong, 0444);
-MODULE_PARM_DESC(rd_size, "Size of each RAM disk in kbytes.");
-
 static int max_part = 1;
-module_param(max_part, int, 0444);
-MODULE_PARM_DESC(max_part, "Num Minors to reserve between devices");
-
+module_param(num_disks, int, 0444);
+MODULE_PARM_DESC(num_disks, "Maximum number of ram block devices");
+module_param(num_snapshots, int, 0444);
+MODULE_PARM_DESC(num_snapshots, "Number of ram block snapshot devices where "
+    "each disk gets it's own snapshot");
+module_param(disk_size, int, 0444);
+MODULE_PARM_DESC(disk_size, "Size of each RAM disk in kbytes.");
+module_param(max_part, int, S_IRUGO);
+MODULE_PARM_DESC(max_part, "Maximum number of partitions per RAM disk");
 MODULE_LICENSE("GPL");
 MODULE_ALIAS_BLOCKDEV_MAJOR(RAMDISK_MAJOR);
-MODULE_ALIAS("rd");
 
 #ifndef MODULE
 /* Legacy boot options - nonmodular */
@@ -364,7 +446,7 @@ static int brd_alloc(int i)
 {
 	struct brd_device *brd;
 	struct gendisk *disk;
-	char buf[DISK_NAME_LEN];
+	char buf[200];
 	int err = -ENOMEM;
 
 	list_for_each_entry(brd, &brd_devices, brd_list)
@@ -374,40 +456,46 @@ static int brd_alloc(int i)
 	if (!brd)
 		return -ENOMEM;
 	brd->brd_number		= i;
+	brd->is_writable = true;
+	brd->is_snapshot = i >= num_disks;
 	list_add_tail(&brd->brd_list, &brd_devices);
-
+	if (brd->is_snapshot) {
+    	snprintf(buf, 200, "cow_ram_snapshot%d_%d", i / num_disks,
+        i % num_disks);
+  	}
+	else {
+		snprintf(buf, 200, "cow_ram%d", i);
+	}
 	xa_init(&brd->brd_pages);
-
-	snprintf(buf, DISK_NAME_LEN, "ram%d", i);
 	if (!IS_ERR_OR_NULL(brd_debugfs_dir))
 		debugfs_create_u64(buf, 0444, brd_debugfs_dir,
 				&brd->brd_nr_pages);
-
 	disk = brd->brd_disk = blk_alloc_disk(NUMA_NO_NODE);
 	if (!disk)
 		goto out_free_dev;
-
+	brd->brd_queue = disk->queue;
+	if (!brd->brd_queue)
+    	goto out_free_dev;
+	blk_queue_max_hw_sectors(brd->brd_queue, 1024);
+	blk_queue_bounce_limit(brd->brd_queue, BLK_BOUNCE_NONE);
+	brd->brd_queue->limits.discard_granularity = PAGE_SIZE;
+	brd->brd_queue->limits.max_discard_sectors = UINT_MAX;
 	disk->major		= RAMDISK_MAJOR;
 	disk->first_minor	= i * max_part;
-	disk->minors		= max_part;
 	disk->fops		= &brd_fops;
 	disk->private_data	= brd;
-	strscpy(disk->disk_name, buf, DISK_NAME_LEN);
-	set_capacity(disk, rd_size * 2);
-	
-	/*
-	 * This is so fdisk will align partitions on 4k, because of
-	 * direct_access API needing 4k alignment, returning a PFN
-	 * (This is only a problem on very small devices <= 4M,
-	 *  otherwise fdisk will align on 1M. Regardless this call
-	 *  is harmless)
-	 */
-	blk_queue_physical_block_size(disk->queue, PAGE_SIZE);
-
-	/* Tell the block layer that this is not a rotational device */
-	blk_queue_flag_set(QUEUE_FLAG_NONROT, disk->queue);
-	blk_queue_flag_set(QUEUE_FLAG_SYNCHRONOUS, disk->queue);
-	blk_queue_flag_set(QUEUE_FLAG_NOWAIT, disk->queue);
+	disk->minors		= max_part;
+	printk(KERN_WARNING DEVICE_NAME ": In brd_alloc Line : 478\n");
+	if (brd->is_snapshot) {
+    	sprintf(disk->disk_name, "cow_ram_snapshot%d_%d", i / num_disks,
+        i % num_disks);
+  	}
+	else {
+		sprintf(disk->disk_name, "cow_ram%d", i);
+	}
+	printk(KERN_WARNING DEVICE_NAME ": In brd_alloc Line : 489\n");
+	set_capacity(disk, disk_size * 2);
+	printk(KERN_WARNING DEVICE_NAME ": In brd_alloc Line : 492\n");
 	err = add_disk(disk);
 	if (err)
 		goto out_cleanup_disk;
@@ -463,18 +551,20 @@ static inline void brd_check_and_reset_par(void)
 
 static int __init brd_init(void)
 {
+	printk(KERN_WARNING DEVICE_NAME ": Initializing device\n");
 	int err, i;
-
+	const int nr = num_disks * (1 + num_snapshots);
+	printk(KERN_WARNING DEVICE_NAME ": Counting NR\n");
 	brd_check_and_reset_par();
-
 	brd_debugfs_dir = debugfs_create_dir("ramdisk_pages", NULL);
 
-	for (i = 0; i < rd_nr; i++) {
+	for (i = 0; i < nr; i++) {
+		printk(KERN_WARNING DEVICE_NAME ": BRD_ALLOC loop\n");
 		err = brd_alloc(i);
 		if (err)
 			goto out_free;
 	}
-
+	printk(KERN_WARNING DEVICE_NAME ": Allocating device\n");
 	/*
 	 * brd module now has a feature to instantiate underlying device
 	 * structure on-demand, provided that there is an access dev node.
@@ -489,8 +579,7 @@ static int __init brd_init(void)
 	 *	If (X / max_part) was not already created it will be created
 	 *	dynamically.
 	 */
-
-	if (__register_blkdev(RAMDISK_MAJOR, "ramdisk", brd_probe)) {
+	if (__register_blkdev(RAMDISK_MAJOR, DEVICE_NAME, brd_probe)) {
 		err = -EIO;
 		goto out_free;
 	}
@@ -507,8 +596,8 @@ out_free:
 
 static void __exit brd_exit(void)
 {
-
-	unregister_blkdev(RAMDISK_MAJOR, "ramdisk");
+	pr_info("brd: Unregistering the device");
+	unregister_blkdev(RAMDISK_MAJOR, DEVICE_NAME);
 	brd_cleanup();
 
 	pr_info("brd: module unloaded\n");
