@@ -64,11 +64,20 @@ static struct hwm_device {
   (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 5, 0) && \
     LINUX_VERSION_CODE < KERNEL_VERSION(5, 5, 3)) || \
   (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 6, 0) && \
-    LINUX_VERSION_CODE < KERNEL_VERSION(5, 6, 7)) || \
-  (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 8, 0))
+    LINUX_VERSION_CODE < KERNEL_VERSION(5, 6, 7))
   struct gendisk* target_dev;
   u8 target_partno;
   struct block_device* target_bd;
+#elif (LINUX_VERSION_CODE == KERNEL_VERSION(6, 8, 0))
+  struct gendisk* target_dev;
+  u8 target_partno;
+  struct block_device* target_bd;
+  struct bdev_handle *bdev_handle;
+#elif (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 12, 0))
+  struct gendisk* target_dev;
+  u8 target_partno;
+  struct block_device* target_bd;
+  struct file *bdev_file;
 #else
 #error "Unsupported kernel version: CrashMonkey has not been tested with " \
   "your kernel version."
@@ -231,11 +240,6 @@ static int disk_wrapper_ioctl(struct block_device* bdev, fmode_t mode,
   return ret;
 }
 
-// The device operations structure.
-static const struct block_device_operations disk_wrapper_ops = {
-  .owner   = THIS_MODULE,
-  .ioctl   = disk_wrapper_ioctl,
-};
 
 /*
  * Converts from kernel specific flags to flags that CrashMonkey uses.
@@ -679,9 +683,10 @@ static void disk_wrapper_bio(struct request_queue* q, struct bio* bio) {
      LINUX_VERSION_CODE >= KERNEL_VERSION(5, 5, 0) && \
      LINUX_VERSION_CODE < KERNEL_VERSION(5, 5, 3) || \
   (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 6, 0) && \
-    LINUX_VERSION_CODE < KERNEL_VERSION(5, 6, 7)) || \
-  LINUX_VERSION_CODE >= KERNEL_VERSION(6, 8, 0)
+    LINUX_VERSION_CODE < KERNEL_VERSION(5, 6, 7))
 static blk_qc_t disk_wrapper_bio(struct request_queue* q, struct bio* bio) {
+#elif (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 8, 0))
+static void disk_wrapper_bio(struct bio* bio) {
 #else
 #error "Unsupported kernel version: CrashMonkey has not been tested with " \
   "your kernel version."
@@ -781,7 +786,12 @@ static blk_qc_t disk_wrapper_bio(struct request_queue* q, struct bio* bio) {
 
  passthrough:
   // Pass request off to normal device driver.
+#if(LINUX_VERSION_CODE < KERNEL_VERSION(6, 8, 0))
   hwm = (struct hwm_device*) q->queuedata;
+#else
+  // Get the value if gendisk (bio->bi_bdev->bd_disk = hwm->target_dev) without queue
+  hwm = (struct hwm_device*) &Device;
+#endif
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 12, 0) && \
     LINUX_VERSION_CODE < KERNEL_VERSION(3, 14, 0)) || \
   (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 16, 0) && \
@@ -810,18 +820,28 @@ static blk_qc_t disk_wrapper_bio(struct request_queue* q, struct bio* bio) {
 #elif  LINUX_VERSION_CODE >= KERNEL_VERSION(6, 8, 0)
   bio->bi_bdev->bd_disk = hwm->target_dev;
   submit_bio(bio);
-  return BLK_QC_T_NONE;
+  bio_endio(bio);
 #else
 #error "Unsupported kernel version: CrashMonkey has not been tested with " \
   "your kernel version."
 #endif
 }
 
+// The device operations structure.
+static const struct block_device_operations disk_wrapper_ops = {
+  .owner   = THIS_MODULE,
+  #if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 8, 0)
+    .submit_bio = disk_wrapper_bio,
+  #endif
+  .ioctl   = disk_wrapper_ioctl,
+};
+
 // TODO(ashmrtn): Fix error when wrong device path is passed.
 static int __init disk_wrapper_init(void) {
   unsigned int flush_flags;
   unsigned long queue_flags;
   struct bdev_handle *bdev_handle, *flags_bdev_handle;
+  struct file *bdev_file, *flags_bdev_file;
   struct block_device *flags_device, *target_device;
   struct gendisk *target_gd;
   struct disk_write_op *first = NULL;
@@ -862,13 +882,20 @@ static int __init disk_wrapper_init(void) {
     printk(KERN_WARNING "hwm: unable to get major number\n");
     goto out;
   }
-  #if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 8, 0))
-    bdev_handle = bdev_open_by_path(strim(target_device_path), BLK_OPEN_READ, NULL, NULL);
+  #if (LINUX_VERSION_CODE == KERNEL_VERSION(6, 8, 0))
+    bdev_handle = bdev_open_by_path(strim(target_device_path), BLK_OPEN_READ, &Device, NULL);
     if (IS_ERR(bdev_handle)) {
       printk(KERN_WARNING "hwm: unable to grab underlying device handle with path %s\n", target_device_path);
       goto out;
     }
     target_device = bdev_handle->bdev;
+  #elif (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 12, 0))
+    bdev_file = bdev_file_open_by_path(strim(target_device_path), BLK_OPEN_READ, &Device, NULL);
+    if (IS_ERR(bdev_file)) {
+      printk(KERN_WARNING "hwm: unable to grab underlying device file with path %s\n", target_device_path);
+      goto out;
+    }
+    target_device = file_bdev(bdev_file);
   #else
     target_device = blkdev_get_by_path(target_device_path, FMODE_READ, &Device);
   #endif
@@ -911,22 +938,41 @@ static int __init disk_wrapper_init(void) {
      LINUX_VERSION_CODE >= KERNEL_VERSION(5, 5, 0) && \
      LINUX_VERSION_CODE < KERNEL_VERSION(5, 5, 3) || \
   (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 6, 0) && \
-    LINUX_VERSION_CODE < KERNEL_VERSION(5, 6, 7)) || \
-  LINUX_VERSION_CODE >= KERNEL_VERSION(6, 8, 0)
+    LINUX_VERSION_CODE < KERNEL_VERSION(5, 6, 7))
   Device.target_dev = target_device->bd_disk;
   Device.target_partno = target_device->bd_partno;
+  printk(KERN_INFO "hwm: Target device partition no %d\n", Device.target_partno);
   Device.target_bd = target_device;
+#elif LINUX_VERSION_CODE == KERNEL_VERSION(6, 8, 0)
+  Device.target_dev = target_device->bd_disk;
+  Device.target_partno = target_device->bd_partno;
+  printk(KERN_INFO "hwm: Target device partition no %d\n", Device.target_partno);
+  Device.target_bd = target_device;
+  Device.bdev_handle = bdev_handle;
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(6, 12, 0)
+  Device.target_dev = target_device->bd_disk;
+  Device.target_partno = bdev_partno(target_device);
+  printk(KERN_INFO "hwm: Target device partition no %d\n", Device.target_partno);
+  Device.target_bd = target_device;
+  Device.bdev_file = bdev_file;
 #else
 #error "Unsupported kernel version: CrashMonkey has not been tested with " \
   "your kernel version."
 #endif
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 8, 0))
-    flags_bdev_handle = bdev_open_by_path(strim(flags_device_path), BLK_OPEN_READ, NULL, NULL);
+#if (LINUX_VERSION_CODE == KERNEL_VERSION(6, 8, 0))
+    flags_bdev_handle = bdev_open_by_path(strim(flags_device_path), BLK_OPEN_READ, &Device, NULL);
     if (IS_ERR(flags_bdev_handle)) {
       printk(KERN_WARNING "hwm: unable to grab underlying device handle\n");
       goto out;
     }
     flags_device = flags_bdev_handle->bdev;
+#elif (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 12, 0))
+    flags_bdev_file = bdev_file_open_by_path(strim(flags_device_path), BLK_OPEN_READ, &Device, NULL);
+    if (IS_ERR(flags_bdev_file)) {
+      printk(KERN_WARNING "hwm: unable to grab underlying device handle\n");
+      goto out;
+    }
+    flags_device = file_bdev(flags_bdev_file);
 #else
   // Get the device we should copy flags from and copy those flags into locals.
   flags_device = blkdev_get_by_path(flags_device_path, FMODE_READ, &Device);
@@ -951,18 +997,38 @@ static int __init disk_wrapper_init(void) {
   flush_flags = flags_device->bd_queue->flush_flags;
 #endif
   queue_flags = flags_device->bd_queue->queue_flags;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 8, 0)
+#if LINUX_VERSION_CODE == KERNEL_VERSION(6, 8, 0)
   bdev_release(flags_bdev_handle);
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(6, 12, 0)
+  fput(flags_bdev_file);
 #else
   blkdev_put(flags_device, FMODE_READ);
 #endif
 
   // Set up our internal device.
   spin_lock_init(&Device.lock);
-
+  struct queue_limits lim = {
+		/*
+		 * This is so fdisk will align partitions on 4k, because of
+		 * direct_access API needing 4k alignment, returning a PFN
+		 * (This is only a problem on very small devices <= 4M,
+		 *  otherwise fdisk will align on 1M. Regardless this call
+		 *  is harmless)
+		 */
+		.physical_block_size	= PAGE_SIZE,
+		.max_hw_discard_sectors	= UINT_MAX,
+		.max_discard_segments	= 1,
+		.discard_granularity	= PAGE_SIZE,
+		.features		= BLK_FEAT_SYNCHRONOUS |
+					  BLK_FEAT_NOWAIT,
+	};
   // And the gendisk structure.
-  #if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 8, 0)
+  #if LINUX_VERSION_CODE == KERNEL_VERSION(6, 8, 0)
     Device.gd = blk_alloc_disk(1);
+    //Device.gd = __alloc_disk_node(1, NUMA_NO_NODE, &sd_bio_compl_lkclass);
+    printk(KERN_INFO "hwm: Allocating disk using __alloc_disk_node \n");
+  #elif LINUX_VERSION_CODE >= KERNEL_VERSION(6, 12, 0)
+    Device.gd = blk_alloc_disk(&lim, NUMA_NO_NODE);
     //Device.gd = __alloc_disk_node(1, NUMA_NO_NODE, &sd_bio_compl_lkclass);
     printk(KERN_INFO "hwm: Allocating disk using __alloc_disk_node \n");
   #else 
@@ -1053,10 +1119,10 @@ static void __exit hello_cleanup(void) {
   (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 6, 0) && \
     LINUX_VERSION_CODE < KERNEL_VERSION(5, 6, 7))
   blkdev_put(Device.target_bd, FMODE_READ);
-#elif LINUX_VERSION_CODE >= KERNEL_VERSION(6, 8, 0)
-  struct bdev_handle *bdev_handle;
-  bdev_handle = bdev_open_by_dev(Device.target_bd, BLK_OPEN_READ, NULL, NULL);
-  bdev_release(bdev_handle); 
+#elif LINUX_VERSION_CODE == KERNEL_VERSION(6, 8, 0)
+  bdev_release(Device.bdev_handle); 
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(6, 12, 0)
+  fput(Device.bdev_file);
 #else
 #error "Unsupported kernel version: CrashMonkey has not been tested with " \
   "your kernel version."

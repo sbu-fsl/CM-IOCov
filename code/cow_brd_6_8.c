@@ -302,36 +302,54 @@ static int brd_do_bvec(struct brd_device *brd, struct page *page,
 out:
 	return err;
 }
-
+//Used instead of brd_make_request
 static void brd_submit_bio(struct bio *bio)
-{
-	struct brd_device *brd = bio->bi_bdev->bd_disk->private_data;
-	sector_t sector = bio->bi_iter.bi_sector;
+{	
+	printk(KERN_WARNING DEVICE_NAME ": In brd_submit_bio Line : 308\n");
+	struct brd_device *brd = bio->BI_DISK->private_data;
+	sector_t sector = bio->BI_SECTOR;
 	struct bio_vec bvec;
 	struct bvec_iter iter;
-	printk(KERN_WARNING "cow_brd: In brd_submit_bio Line : 312\n");
+	bool rw;
+	if (bio_end_sector(bio) > get_capacity(bio->BI_DISK)) {
+		bio_io_error(bio);
+		return;
+	}
+
+	rw = BIO_IS_WRITE(bio);
+	printk(KERN_WARNING DEVICE_NAME ": In brd_submit_bio Line : 341 %d\n", sector);
+	bio->bi_opf |= REQ_SYNC;
+	if ((rw || bio->BI_RW & BIO_DISCARD_FLAG) && !brd->is_writable) {
+		bio_io_error(bio);
+		return;
+	}
+	if (unlikely(bio_op(bio) == BIO_DISCARD_FLAG)) {
+		discard_from_brd(brd, sector, bio->BI_SIZE);
+		bio_endio(bio);
+		return;
+  	}
 	bio_for_each_segment(bvec, bio, iter) {
 		unsigned int len = bvec.bv_len;
 		int err;
-		printk(KERN_WARNING "cow_brd: In brd_submit_bio Line : 316\n");
-		/* Don't support un-aligned buffer */
-		WARN_ON_ONCE((bvec.bv_offset & (SECTOR_SIZE - 1)) ||
-				(len & (SECTOR_SIZE - 1)));
+		// WARN_ON_ONCE((bvec.bv_offset & (SECTOR_SIZE - 1)) ||
+		// 		(len & (SECTOR_SIZE - 1)));
 		err = brd_do_bvec(brd, bvec.bv_page, len, bvec.bv_offset,
 				  bio->bi_opf, sector);
 		if (err) {
-			if (err == -ENOMEM && bio->bi_opf & REQ_NOWAIT) {
-				bio_wouldblock_error(bio);
-				return;
-			}
+			printk(KERN_WARNING DEVICE_NAME ": In brd_submit_bio Line : 326\n");
 			bio_io_error(bio);
 			return;
 		}
-		printk(KERN_WARNING "cow_brd: In brd_submit_bio Line : 330\n");
 		sector += len >> SECTOR_SHIFT;
+		printk(KERN_WARNING DEVICE_NAME ": In brd_submit_bio Line : 341 %d\n", sector);
 	}
-	printk(KERN_WARNING "cow_brd: In brd_submit_bio Line : 333\n");
+	printk(KERN_WARNING DEVICE_NAME ": In brd_submit_bio Line : 343\n");
+	struct buffer_head *bh = bio->bi_private;
+	if(!bh) {
+		printk(KERN_WARNING DEVICE_NAME ": In brd_submit_bio Line : 348\n");
+	}
 	bio_endio(bio);
+	printk(KERN_WARNING DEVICE_NAME ": In brd_submit_bio Line : 351\n");
 }
 #ifdef CONFIG_BLK_DEV_XIP
 static int brd_direct_access(struct block_device *bdev, sector_t sector,
@@ -406,13 +424,12 @@ static const struct block_device_operations brd_fops = {
 /*
  * And now the modules code and kernel interface.
  */
-static int rd_nr = CONFIG_BLK_DEV_RAM_COUNT;
 int major_num = 0;
 static int num_disks = 1;
 static int num_snapshots = 1;
 int disk_size = DEFAULT_COW_RD_SIZE;
-unsigned long rd_size = CONFIG_BLK_DEV_RAM_SIZE;
 static int max_part = 1;
+static int part_shift;
 module_param(num_disks, int, 0444);
 MODULE_PARM_DESC(num_disks, "Maximum number of ram block devices");
 module_param(num_snapshots, int, 0444);
@@ -448,7 +465,21 @@ static int brd_alloc(int i)
 	struct gendisk *disk;
 	char buf[200];
 	int err = -ENOMEM;
-
+	struct queue_limits lim = {
+		/*
+		 * This is so fdisk will align partitions on 4k, because of
+		 * direct_access API needing 4k alignment, returning a PFN
+		 * (This is only a problem on very small devices <= 4M,
+		 *  otherwise fdisk will align on 1M. Regardless this call
+		 *  is harmless)
+		 */
+		.physical_block_size	= PAGE_SIZE,
+		.max_hw_discard_sectors	= UINT_MAX,
+		.max_discard_segments	= 1,
+		.discard_granularity	= PAGE_SIZE,
+		.features		= BLK_FEAT_SYNCHRONOUS |
+					  BLK_FEAT_NOWAIT,
+	};
 	list_for_each_entry(brd, &brd_devices, brd_list)
 		if (brd->brd_number == i)
 			return -EEXIST;
@@ -470,17 +501,17 @@ static int brd_alloc(int i)
 	if (!IS_ERR_OR_NULL(brd_debugfs_dir))
 		debugfs_create_u64(buf, 0444, brd_debugfs_dir,
 				&brd->brd_nr_pages);
-	disk = brd->brd_disk = blk_alloc_disk(NUMA_NO_NODE);
+	disk = brd->brd_disk = blk_alloc_disk(&lim, NUMA_NO_NODE);
 	if (!disk)
 		goto out_free_dev;
 	brd->brd_queue = disk->queue;
 	if (!brd->brd_queue)
     	goto out_free_dev;
-	blk_queue_max_hw_sectors(brd->brd_queue, 1024);
-	blk_queue_bounce_limit(brd->brd_queue, BLK_BOUNCE_NONE);
-	brd->brd_queue->limits.discard_granularity = PAGE_SIZE;
-	brd->brd_queue->limits.max_discard_sectors = UINT_MAX;
-	disk->major		= RAMDISK_MAJOR;
+	// blk_queue_max_hw_sectors(brd->brd_queue, 1024);
+	// blk_queue_bounce_limit(brd->brd_queue, BLK_BOUNCE_NONE);
+	// brd->brd_queue->limits.discard_granularity = PAGE_SIZE;
+	// brd->brd_queue->limits.max_discard_sectors = UINT_MAX;
+	disk->major		= major_num;
 	disk->first_minor	= i * max_part;
 	disk->fops		= &brd_fops;
 	disk->private_data	= brd;
@@ -557,14 +588,18 @@ static int __init brd_init(void)
 	printk(KERN_WARNING DEVICE_NAME ": Counting NR\n");
 	brd_check_and_reset_par();
 	brd_debugfs_dir = debugfs_create_dir("ramdisk_pages", NULL);
-
+	major_num = register_blkdev(major_num, DEVICE_NAME);
+	if (major_num <= 0) {
+		printk(KERN_WARNING DEVICE_NAME ": unable to get major number\n");
+		err = -EIO;
+		goto out_free;
+	}
 	for (i = 0; i < nr; i++) {
-		printk(KERN_WARNING DEVICE_NAME ": BRD_ALLOC loop\n");
+		//printk(KERN_WARNING DEVICE_NAME ": BRD_ALLOC loop\n");
 		err = brd_alloc(i);
 		if (err)
 			goto out_free;
 	}
-	printk(KERN_WARNING DEVICE_NAME ": Allocating device\n");
 	/*
 	 * brd module now has a feature to instantiate underlying device
 	 * structure on-demand, provided that there is an access dev node.
@@ -579,17 +614,18 @@ static int __init brd_init(void)
 	 *	If (X / max_part) was not already created it will be created
 	 *	dynamically.
 	 */
-	if (__register_blkdev(RAMDISK_MAJOR, DEVICE_NAME, brd_probe)) {
-		err = -EIO;
-		goto out_free;
-	}
+	// if (register_blkdev(RAMDISK_MAJOR, DEVICE_NAME)) {
+	// 	err = -EIO;
+	// 	goto out_free;
+	// }
 
 	pr_info("brd: module loaded\n");
+	printk(KERN_INFO DEVICE_NAME ": module loaded with %d disks and %d snapshots"
+      "\n", num_disks, num_disks * num_snapshots);
 	return 0;
 
 out_free:
 	brd_cleanup();
-
 	pr_info("brd: module NOT loaded !!!\n");
 	return err;
 }
@@ -597,12 +633,10 @@ out_free:
 static void __exit brd_exit(void)
 {
 	pr_info("brd: Unregistering the device");
-	unregister_blkdev(RAMDISK_MAJOR, DEVICE_NAME);
+	unregister_blkdev(major_num, DEVICE_NAME);
 	brd_cleanup();
-
 	pr_info("brd: module unloaded\n");
 }
 
 module_init(brd_init);
 module_exit(brd_exit);
-

@@ -11,8 +11,9 @@ TESTING := testing/log_on_off testing/test_get_log_ent_size
 
 MODULES = cow_brd_6_8 disk_wrapper
 obj-m := $(addsuffix .o, $(MODULES))
+CMODULE := $(addsuffix .c, $(MODULES))
 KDIR := /lib/modules/$(KERNEL_VERSION)/build
-
+ 
 # Some Makefile magic to get the right include for xattr depending on kernel
 # version. To avoid including kernel headers in user test cases, we don't want
 # to compare against the KERNEL_VERSION macro. Thanks to some random SO post for
@@ -56,6 +57,9 @@ DELAY_DEFINE := -DFOUR_FIFTEEN
 endif
 ifeq ($(shell [ $(KERNEL_MAJ) -eq 4 -a $(KERNEL_MIN) -eq 16 ] && echo true), true)
 DELAY_DEFINE := -DFOUR_SIXTEEN
+endif
+ifeq ($(shell [ $(KERNEL_MAJ) -eq 6 -a $(KERNEL_MIN) -eq 12 ] && echo true), true)
+DELAY_DEFINE := -DSIX_TWELVE
 endif
 ifndef CM
 DELAY_DEFINE := -DTWO_SEC
@@ -118,11 +122,12 @@ all: \
 		tests \
 		seq1 \
 		permuters
+		@echo "DONE"
 
 modules: \
 		$(foreach MOD, $(MODULES), $(addsuffix .c, $(MOD))) \
 		$(BUILD_DIR)/Makefile
-	$(MAKE) -C $(KDIR) M=$(BUILD_DIR) src=$(CURDIR) modules
+	$(MAKE) -C $(KDIR) M=$(CURDIR) src=$(CURDIR) modules
 
 c_harness: \
 		$(BUILD_DIR)/c_harness

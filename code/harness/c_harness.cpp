@@ -279,7 +279,7 @@ int main(int argc, char** argv) {
   cout << "Inserting RAM disk module" << endl;
   logfile << "Inserting RAM disk module" << endl;
   if (test_harness.insert_cow_brd() != SUCCESS) {
-    cerr << "Error inserting RAM disk module" << endl;
+    //cerr << "Error inserting RAM disk module" << endl;
     return -1;
   }
   test_harness.set_fs_type(fs_type);
@@ -379,7 +379,7 @@ int main(int argc, char** argv) {
     cout << "Formatting test drive" << endl;
     logfile << "Formatting test drive" << endl;
     if (test_harness.format_drive() != SUCCESS) {
-      cerr << "Error formatting test drive" << endl;
+      //cerr << "Error formatting test drive" << endl;
       test_harness.cleanup_harness();
       return -1;
     }
@@ -538,7 +538,7 @@ int main(int argc, char** argv) {
     cout << "Inserting wrapper module into kernel" << endl;
     logfile << "Inserting wrapper module into kernel" << endl;
     if (test_harness.insert_wrapper() != SUCCESS) {
-      cerr << "Error inserting kernel wrapper module" << endl;
+      //cerr << "Error inserting kernel wrapper module" << endl;
       test_harness.cleanup_harness();
       return -1;
     }
