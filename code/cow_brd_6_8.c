@@ -501,7 +501,7 @@ static int brd_alloc(int i)
 	if (!IS_ERR_OR_NULL(brd_debugfs_dir))
 		debugfs_create_u64(buf, 0444, brd_debugfs_dir,
 				&brd->brd_nr_pages);
-	disk = brd->brd_disk = blk_alloc_disk(&lim, NUMA_NO_NODE);
+	disk = brd->brd_disk = blk_alloc_disk(NULL, NUMA_NO_NODE);
 	if (!disk)
 		goto out_free_dev;
 	brd->brd_queue = disk->queue;

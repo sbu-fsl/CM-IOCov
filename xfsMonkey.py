@@ -149,6 +149,7 @@ def main():
 			retry = 0
 			while True:
 				p=subprocess.Popen(command, stdout=subprocess.PIPE, shell=True)
+				print(command)
 				(output,err)=p.communicate()
 				p_status=p.wait()
 				output = output.decode("utf-8")

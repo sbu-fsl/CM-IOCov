@@ -819,12 +819,15 @@ static void disk_wrapper_bio(struct bio* bio) {
   return BLK_QC_T_NONE;
 #elif  LINUX_VERSION_CODE >= KERNEL_VERSION(6, 8, 0)
   bio->bi_bdev->bd_disk = hwm->target_dev;
+  printk(KERN_WARNING "hwm: Major number is %d:\n", hwm->gd->major);
+  printk(KERN_WARNING "hwm: Sending bio to cow_brd\n");
   submit_bio(bio);
-  bio_endio(bio);
+  //return BLK_QC_T_NONE;
 #else
 #error "Unsupported kernel version: CrashMonkey has not been tested with " \
   "your kernel version."
 #endif
+printk(KERN_WARNING "hwm: Ending disk_wrapper\n");
 }
 
 // The device operations structure.
@@ -883,14 +886,14 @@ static int __init disk_wrapper_init(void) {
     goto out;
   }
   #if (LINUX_VERSION_CODE == KERNEL_VERSION(6, 8, 0))
-    bdev_handle = bdev_open_by_path(strim(target_device_path), BLK_OPEN_READ, &Device, NULL);
+    bdev_handle = bdev_open_by_path(strim(target_device_path), BLK_OPEN_READ, NULL, NULL);
     if (IS_ERR(bdev_handle)) {
       printk(KERN_WARNING "hwm: unable to grab underlying device handle with path %s\n", target_device_path);
       goto out;
     }
     target_device = bdev_handle->bdev;
   #elif (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 12, 0))
-    bdev_file = bdev_file_open_by_path(strim(target_device_path), BLK_OPEN_READ, &Device, NULL);
+    bdev_file = bdev_file_open_by_path(strim(target_device_path), BLK_OPEN_READ, NULL, NULL);
     if (IS_ERR(bdev_file)) {
       printk(KERN_WARNING "hwm: unable to grab underlying device file with path %s\n", target_device_path);
       goto out;
@@ -960,16 +963,19 @@ static int __init disk_wrapper_init(void) {
   "your kernel version."
 #endif
 #if (LINUX_VERSION_CODE == KERNEL_VERSION(6, 8, 0))
-    flags_bdev_handle = bdev_open_by_path(strim(flags_device_path), BLK_OPEN_READ, &Device, NULL);
+    flags_bdev_handle = bdev_open_by_path(strim(flags_device_path), BLK_OPEN_READ, NULL, NULL);
     if (IS_ERR(flags_bdev_handle)) {
       printk(KERN_WARNING "hwm: unable to grab underlying device handle\n");
       goto out;
     }
     flags_device = flags_bdev_handle->bdev;
 #elif (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 12, 0))
-    flags_bdev_file = bdev_file_open_by_path(strim(flags_device_path), BLK_OPEN_READ, &Device, NULL);
+    struct blk_holder_ops h;
+    flags_bdev_file = bdev_file_open_by_path(strim(flags_device_path), BLK_OPEN_READ, NULL, &h);
+    unsigned long flags_error = IS_ERR_VALUE((unsigned long)flags_bdev_file);
+
     if (IS_ERR(flags_bdev_file)) {
-      printk(KERN_WARNING "hwm: unable to grab underlying device handle\n");
+      printk(KERN_WARNING "hwm: unable to grab underlying device file %lu\n", flags_error);
       goto out;
     }
     flags_device = file_bdev(flags_bdev_file);
@@ -1028,7 +1034,7 @@ static int __init disk_wrapper_init(void) {
     //Device.gd = __alloc_disk_node(1, NUMA_NO_NODE, &sd_bio_compl_lkclass);
     printk(KERN_INFO "hwm: Allocating disk using __alloc_disk_node \n");
   #elif LINUX_VERSION_CODE >= KERNEL_VERSION(6, 12, 0)
-    Device.gd = blk_alloc_disk(&lim, NUMA_NO_NODE);
+    Device.gd = blk_alloc_disk(NULL, NUMA_NO_NODE);
     //Device.gd = __alloc_disk_node(1, NUMA_NO_NODE, &sd_bio_compl_lkclass);
     printk(KERN_INFO "hwm: Allocating disk using __alloc_disk_node \n");
   #else 
@@ -1041,6 +1047,7 @@ static int __init disk_wrapper_init(void) {
 
   Device.gd->private_data = &Device;
   Device.gd->major = major_num;
+  printk(KERN_INFO "hwm: Major number is %d\n", major_num);
   Device.gd->first_minor = target_device->bd_disk->first_minor;
   Device.gd->minors = target_device->bd_disk->minors;
   set_capacity(Device.gd, get_capacity(target_device->bd_disk));
@@ -1067,12 +1074,10 @@ static int __init disk_wrapper_init(void) {
     LINUX_VERSION_CODE < KERNEL_VERSION(4, 5, 0))
   Device.gd->queue->flush_flags = flush_flags;
 #endif
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 8, 0))
-  Device.gd->queue->queue_flags = queue_flags;
-  Device.gd->queue->queuedata = &Device;
-  printk(KERN_INFO "hwm: working with queue with:\n\tflags 0x%lx\n",
-      Device.gd->queue->queue_flags);
-#endif
+Device.gd->queue->queue_flags = queue_flags;
+Device.gd->queue->queuedata = &Device;
+printk(KERN_INFO "hwm: working with queue with:\n\tflags 0x%lx\n",
+    Device.gd->queue->queue_flags);
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 12, 0) && \
     LINUX_VERSION_CODE < KERNEL_VERSION(3, 14, 0)) || \
   (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 16, 0) && \
