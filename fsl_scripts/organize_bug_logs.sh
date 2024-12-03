@@ -56,7 +56,8 @@ if [ ! -d "$TARGET_DIR" ]; then
 fi
 
 # Logs and workloads to move
-LOG_FILES="$TIMESTAMP-xfsMonkey.log outfile* bugs missing others out out_compile stat"
+# Ignore xfsmonkey_logs/202*-xfsMonkey.log
+LOG_FILES="$TIMESTAMP-xfsMonkey.log outfile* bugs missing others out out_compile stat ace/202*-bugWorkloadGen.log"
 LOGS_DIRS="diff_results"
 WORKLOAD_FILES="code/tests/$WORKLOAD"
 

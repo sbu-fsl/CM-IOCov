@@ -44,3 +44,5 @@ code/tests/seq1/*
 # Collected & generated bug logs
 diff_results/
 cm_iocov_bugs/
+# Backup for deleted logs
+fsl_log_backups/
