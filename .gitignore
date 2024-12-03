@@ -21,6 +21,7 @@ ace/202*-bugWorkloadGen.log
 # Files to indicate number of bugs
 bugs
 # Generated CPP workloads
+code/tests/generated_workloads/base-j-lang
 code/tests/generated_workloads/j-lang*.cpp
 # Other generated workloads (cpp files, j-lang files, base-j-lang)
 code/tests/seq1_demo/
