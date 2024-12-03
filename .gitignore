@@ -41,3 +41,6 @@ code/tests/seq*/j-lang*.cpp
 # j-lang files
 code/tests/seq*/j-lang-files/j-lang*
 code/tests/seq1/*
+# Collected & generated bug logs
+diff_results/
+cm_iocov_bugs/
