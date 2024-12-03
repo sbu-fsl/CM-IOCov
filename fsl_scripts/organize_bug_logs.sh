@@ -1,6 +1,7 @@
 #!/bin/bash
 
-# Args: ./organize_bug_logs.sh -f fs_name -w workload_name -t timestamp -d bug_log_dir
+# Args: sudo ./organize_bug_logs.sh -f fs_name -w workload_name -t timestamp -d bug_log_dir
+# Example: sudo ./organize_bug_logs.sh -f xfs -w seq1_yf_demo -t 20241007_114200 -d cm_iocov_bugs
 # fs_name: file system under test, e.g., btrfs, ext4, xfs
 # workload_name: seq1_demo, seq1_yf_demo, seq2
 # timestamp: timestamp of the xfsMonkey bug log (timestamp-xfsMonkey.log)
@@ -46,7 +47,7 @@ done
 cd ..
 
 # Create a directory under bug_log_dir for the bug logs
-TARGET_DIR="$$BUG_LOG_DIR/$FS-$WORKLOAD-$TIMESTAMP"
+TARGET_DIR="$BUG_LOG_DIR/$FS-$WORKLOAD-$TIMESTAMP"
 
 # Ensure the target directory exists, create it if it doesn't
 if [ ! -d "$TARGET_DIR" ]; then
@@ -54,11 +55,15 @@ if [ ! -d "$TARGET_DIR" ]; then
     mkdir -p "$TARGET_DIR"
 fi
 
-# Logs on root directory
-LOG_DIRS_FILES="diff_results $TIMESTAMP-xfsMonkey.log outfile* bugs missing others out out_compile stat"
+# Logs and workloads to move
+LOG_FILES="$TIMESTAMP-xfsMonkey.log outfile* bugs missing others out out_compile stat"
+LOGS_DIRS="diff_results"
+WORKLOAD_FILES="code/tests/$WORKLOAD"
+
+COMBINED_FILES="$LOG_FILES $LOGS_DIRS $WORKLOAD_FILES"
 
 # Move each file or directory to the target directory
-for ITEM in $LOG_DIRS_FILES; do
+for ITEM in $COMBINED_FILES; do
     if [ -e "$ITEM" ]; then
         echo "Moving $ITEM to $TARGET_DIR"
         mv "$ITEM" "$TARGET_DIR"
@@ -68,4 +73,4 @@ for ITEM in $LOG_DIRS_FILES; do
 done
 
 # Summary
-echo "All specified files/directories have been processed."
+echo "All Log/Workload files/directories have been processed."
