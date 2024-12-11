@@ -3,7 +3,7 @@
 # Args: sudo ./organize_bug_logs.sh -f fs_name -w workload_name -t timestamp -d bug_log_dir
 # Example: sudo ./organize_bug_logs.sh -f xfs -w seq1_yf_demo -t 20241007_114200 -d cm_iocov_bugs
 # fs_name: file system under test, e.g., btrfs, ext4, xfs
-# workload_name: seq1_demo, seq1_yf_demo, seq2
+# workload_name: seq1_demo, seq2, seq3, etc. (no longer use seq1_yf_demo)
 # timestamp: timestamp of the xfsMonkey bug log (timestamp-xfsMonkey.log)
 # bug_log_dir: directory containing the CM bug logs, e.g., cm_iocov_bugs, cm_bugs
 

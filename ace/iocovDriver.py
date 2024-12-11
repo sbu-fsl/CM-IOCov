@@ -3,7 +3,7 @@ import random
 ############### Constant Variables ###############
 
 # Example lower and upper limits for the number of bytes
-LOWER_MIN = 1
+LOWER_MIN = 16
 UPPER_BYTES_200MIB = 209715200
 # The byte size for a file should be FILE_DEV_RATE * dev_bytes where FILE_DEV_RATE is (0, 1)
 FILE_DEV_RATE = 0.01
@@ -120,6 +120,9 @@ def gen_powers_two_offsets_limits(lower_limit, upper_limit):
         # Add power_of_2 - 1, if within the upper/lower limits
         if power_of_2 - 1 >= lower_limit and power_of_2 - 1 <= upper_limit:
             result_set.add(power_of_2 - 1)
+    # Avoid returning an empty list if no elements are added
+    if len(result_set) == 0:
+        return [lower_limit, upper_limit]
     # Convert the set to a sorted list and return it
     return sorted(result_set)
 
@@ -182,7 +185,7 @@ def create_random_selector(arglist):
 # Return a random integer (e.g., offset) smaller than the given size
 def get_random_smaller_int(size):
     if size <= 1:
-        return 0
+        return 1
     
     return random.randint(1, size - 1)
 
