@@ -47,3 +47,5 @@ diff_results/
 cm_iocov_bugs/
 # Backup for deleted logs
 fsl_log_backups/
+# Origanized bug logs
+unmodified_cm_bugs/

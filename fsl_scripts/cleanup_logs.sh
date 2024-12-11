@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Usage: sudo ./cleanup_logs.sh
+# Clean ups only, do NOT clean test workloads
+
 # Cleanup script for log files with safe backup
 
 # Get the directory where the script is located
