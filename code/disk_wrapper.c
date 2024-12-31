@@ -706,7 +706,7 @@ static void disk_wrapper_bio(struct bio* bio) {
   if (Device.log_on && should_log(bio)) {
     curr_time = ktime_get();
 
-    printk(KERN_INFO "hwm: bio rw of size %u headed for 0x%lx (sector 0x%lx)"
+    printk(KERN_WARNING "hwm: bio rw of size %u headed for 0x%lx (sector 0x%lx)"
                      " has flags:\n", bio->BI_SIZE, bio->BI_SECTOR * 512,
            bio->BI_SECTOR);
     print_rw_flags(bio->BI_RW, bio->bi_flags);
@@ -912,11 +912,6 @@ static int __init disk_wrapper_init(void) {
   }
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 8, 0))
   target_gd = target_device->bd_disk;
-  if (!target_gd->fops->submit_bio) {
-     printk(KERN_WARNING "hwm: attempt to wrap device with no "
-        "submit_bio\n");
-    goto out;
-  }
 #else
   if (!target_device->bd_queue->make_request_fn) {
     printk(KERN_WARNING "hwm: attempt to wrap device with no "
@@ -1013,21 +1008,6 @@ static int __init disk_wrapper_init(void) {
 
   // Set up our internal device.
   spin_lock_init(&Device.lock);
-  struct queue_limits lim = {
-		/*
-		 * This is so fdisk will align partitions on 4k, because of
-		 * direct_access API needing 4k alignment, returning a PFN
-		 * (This is only a problem on very small devices <= 4M,
-		 *  otherwise fdisk will align on 1M. Regardless this call
-		 *  is harmless)
-		 */
-		.physical_block_size	= PAGE_SIZE,
-		.max_hw_discard_sectors	= UINT_MAX,
-		.max_discard_segments	= 1,
-		.discard_granularity	= PAGE_SIZE,
-		.features		= BLK_FEAT_SYNCHRONOUS |
-					  BLK_FEAT_NOWAIT,
-	};
   // And the gendisk structure.
   #if LINUX_VERSION_CODE == KERNEL_VERSION(6, 8, 0)
     Device.gd = blk_alloc_disk(1);
@@ -1050,7 +1030,6 @@ static int __init disk_wrapper_init(void) {
   printk(KERN_INFO "hwm: Major number is %d\n", major_num);
   Device.gd->first_minor = target_device->bd_disk->first_minor;
   Device.gd->minors = target_device->bd_disk->minors;
-  set_capacity(Device.gd, get_capacity(target_device->bd_disk));
   strcpy(Device.gd->disk_name, "hwm");
   Device.gd->fops = &disk_wrapper_ops;
 
@@ -1075,7 +1054,7 @@ static int __init disk_wrapper_init(void) {
   Device.gd->queue->flush_flags = flush_flags;
 #endif
 Device.gd->queue->queue_flags = queue_flags;
-Device.gd->queue->queuedata = &Device;
+//Device.gd->queue->queuedata = &Device;
 printk(KERN_INFO "hwm: working with queue with:\n\tflags 0x%lx\n",
     Device.gd->queue->queue_flags);
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 12, 0) && \
@@ -1095,7 +1074,7 @@ printk(KERN_INFO "hwm: working with queue with:\n\tflags 0x%lx\n",
     printk(KERN_INFO "hwm: Error in adding disk");
     goto out;
   }
-
+  set_capacity(Device.gd, get_capacity(target_device->bd_disk));
   printk(KERN_NOTICE "hwm: initialized\n");
   return 0;
 
