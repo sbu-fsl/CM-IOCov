@@ -84,7 +84,10 @@ cd ..
 
 # Before starting compilation, let's cleanup the target directories, just to be sure we'll run only the demo workloads. Also, copy generated workloads to TARGET_DIR
 if [ -d "$TARGET_DIR" ]; then rm -rf $TARGET_DIR/*; fi
-cp $WORKLOAD_DIR/j-lang*.cpp $TARGET_DIR/
+
+# To fix "cp: argument list too long" error, use find and xargs
+# cp $WORKLOAD_DIR/j-lang*.cpp $TARGET_DIR/
+find "$WORKLOAD_DIR" -maxdepth 1 -name "j-lang*.cpp" -print0 | xargs -0 cp -t "$TARGET_DIR" || { echo "Workload CPP files copy failed. Exiting."; exit 1; }
 
 echo "Workload generation complete. Compiling workloads.."
 make gentests > out_compile 2>&1
