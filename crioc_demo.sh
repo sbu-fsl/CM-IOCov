@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# exit immediately on any failure
+set -e
+
 # CrashMonkey-IOCov Demo Script extended from demo.sh with handling more parameters
 # Usage: sudo ./crioc_demo.sh [-f fs_name] [-w workload_name] [-s dev_sz_kb] [-l ace_sequence_len] [-n ace_nested] [-d ace_demo] [--help]
 # Default: sudo ./crioc_demo.sh -f btrfs -w seq1_demo -s 204800 -l 1 -n False -d True
@@ -70,11 +73,14 @@ reset=$(tput sgr0)
 
 # Starting workload generation..
 # Let's use the restricted bounds defined by -d flag in the workload generator
-cd ace
 echo "Cleaning up the target workload directory"
-if [ -d "$WORKLOAD_DIR" ]; then rm -rf $WORKLOAD_DIR; fi
+if [ -d "$WORKLOAD_DIR" ]; then
+    mv "$WORKLOAD_DIR" "${WORKLOAD_DIR}_$(date +%Y%m%d_%H%M%S)"
+fi
 
 echo "Starting workload generation.."
+# Change to ace directory
+cd ace
 start=`date +%s.%3N`
 python ace.py -l $ACE_SEQ_LEN -n $ACE_NESTED -d $ACE_DEMO
 
@@ -83,7 +89,10 @@ end_gen=`date +%s.%3N`
 cd ..
 
 # Before starting compilation, let's cleanup the target directories, just to be sure we'll run only the demo workloads. Also, copy generated workloads to TARGET_DIR
-if [ -d "$TARGET_DIR" ]; then rm -rf $TARGET_DIR/*; fi
+if [ -d "$TARGET_DIR" ]; then
+    mv "$TARGET_DIR" "${TARGET_DIR}_$(date +%Y%m%d_%H%M%S)"
+fi
+mkdir -p "$TARGET_DIR"
 
 # To fix "cp: argument list too long" error, use find and xargs
 # cp $WORKLOAD_DIR/j-lang*.cpp $TARGET_DIR/
