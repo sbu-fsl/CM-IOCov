@@ -1,0 +1,23 @@
+make: Entering directory '/home/kamal/crashmonkey-iocov'
+make -C code all
+make[1]: Entering directory '/home/kamal/crashmonkey-iocov/code'
+make -C /lib/modules/6.12.0/build M=/home/kamal/crashmonkey-iocov/code/../build src=/home/kamal/crashmonkey-iocov/code modules
+make[2]: Entering directory '/home/kamal/linux-6.12'
+Debug: M = /home/kamal/crashmonkey-iocov/code/../build
+Debug: src = /home/kamal/crashmonkey-iocov/code
+make --no-print-directory -C /home/kamal/linux-6.12 \
+-f /home/kamal/linux-6.12/Makefile modules
+Debug: M = /home/kamal/crashmonkey-iocov/code/../build
+Debug: src = /home/kamal/crashmonkey-iocov/code
+make -f ./scripts/Makefile.build obj=/home/kamal/crashmonkey-iocov/code/../build need-builtin=1 need-modorder=1 
+Debug: obj = /home/kamal/crashmonkey-iocov/code/../build
+Debug: src = /home/kamal/crashmonkey-iocov/code
+Debug: src = /home/kamal/crashmonkey-iocov/code
+make[4]: *** No rule to make target '/home/kamal/crashmonkey-iocov/code/../build/cow_brd.o', needed by '/home/kamal/crashmonkey-iocov/code/../build/'.  Stop.
+make[3]: *** [/home/kamal/linux-6.12/Makefile:1939: /home/kamal/crashmonkey-iocov/code/../build] Error 2
+make[2]: *** [Makefile:227: __sub-make] Error 2
+make[2]: Leaving directory '/home/kamal/linux-6.12'
+make[1]: *** [Makefile:128: modules] Error 2
+make[1]: Leaving directory '/home/kamal/crashmonkey-iocov/code'
+make: *** [Makefile:23: code] Error 2
+make: Leaving directory '/home/kamal/crashmonkey-iocov'
