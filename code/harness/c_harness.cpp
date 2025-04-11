@@ -279,9 +279,12 @@ int main(int argc, char** argv) {
   cout << "Inserting RAM disk module" << endl;
   logfile << "Inserting RAM disk module" << endl;
   if (test_harness.insert_cow_brd() != SUCCESS) {
-    //cerr << "Error inserting RAM disk module" << endl;
+    cerr << "Error inserting RAM disk module" << endl;
     return -1;
   }
+
+  cout << "Success on Insertion RAM disk module" << endl;
+
   test_harness.set_fs_type(fs_type);
   test_harness.set_device(test_dev);
   FILE *input;

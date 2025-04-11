@@ -1,0 +1,10 @@
+{
+    "files.associations": {
+        "module.h": "c",
+        "ktime.h": "c",
+        "ioctl.h": "c",
+        "init.h": "c",
+        "fs.h": "c",
+        "blkdev.h": "c"
+    }
+}

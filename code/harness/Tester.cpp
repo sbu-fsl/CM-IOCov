@@ -53,7 +53,7 @@
 #define WRAPPER_INSMOD2      " flags_device_path="
 #define WRAPPER_RMMOD       "rmmod " WRAPPER_MODULE_NAME
 //TODO (Tanya): Changed for 6.8 -> Need to revert
-#define COW_BRD_MODULE_NAME "../build/cow_brd_6_8.ko"
+#define COW_BRD_MODULE_NAME "../build/cow_brd.ko"
 #define COW_BRD_INSMOD      "insmod " COW_BRD_MODULE_NAME " num_disks="
 #define COW_BRD_INSMOD2      " num_snapshots="
 #define COW_BRD_INSMOD3      " disk_size="
@@ -245,7 +245,7 @@ void Tester::getCompleteRunDiskClone() {
 }
 
 int Tester::insert_cow_brd() {
-  cerr << "Error in Cow_BRD_FD" << cow_brd_fd << endl;
+  // cerr << "Error in Cow_BRD_FD" << cow_brd_fd << endl;
   if (cow_brd_fd < 0) {
     string command(COW_BRD_INSMOD);
     command += NUM_DISKS;
@@ -256,6 +256,10 @@ int Tester::insert_cow_brd() {
     if (!verbose) {
       command += SILENT;
     }
+
+    cout << "*******Command for inserting cow brd module*************" << endl;
+    cout << command <<endl;
+    
     int command_result = system(command.c_str());
     if (command_result < 0) {
       cow_brd_fd = -1;
@@ -320,6 +324,10 @@ int Tester::insert_wrapper() {
     if (!verbose) {
       command += SILENT;
     }
+
+    cout << "Command for inserting wrapper module" << endl;
+    cout << command << endl;
+    
     if (system(command.c_str()) != 0) {
       cerr << "Error inserting kernel wrapper module" << command.c_str() << endl;
       wrapper_inserted = false;

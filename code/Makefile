@@ -9,7 +9,7 @@ GOTPSSO = -shared -fPIC
 BUILD_DIR = $(CURDIR)/../build
 TESTING := testing/log_on_off testing/test_get_log_ent_size
 
-MODULES = cow_brd_6_8 disk_wrapper
+MODULES = cow_brd disk_wrapper
 obj-m := $(addsuffix .o, $(MODULES))
 CMODULE := $(addsuffix .c, $(MODULES))
 KDIR := /lib/modules/$(KERNEL_VERSION)/build
@@ -124,10 +124,15 @@ all: \
 		permuters
 		@echo "DONE"
 
-modules: \
+modules: build-modules move-modules
+build-modules: \
 		$(foreach MOD, $(MODULES), $(addsuffix .c, $(MOD))) \
 		$(BUILD_DIR)/Makefile
 	$(MAKE) -C $(KDIR) M=$(CURDIR) src=$(CURDIR) modules
+
+move-modules:
+	@mkdir -p $(BUILD_DIR)
+	mv -f *.ko $(BUILD_DIR)/
 
 c_harness: \
 		$(BUILD_DIR)/c_harness

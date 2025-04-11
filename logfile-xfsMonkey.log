@@ -1,0 +1,310 @@
+==================== Setup ==================== 
+
+Filesystem type       btrfs
+Disk size (MB)        200.0
+Test device           /dev/cow_ram0
+Flags device          /dev/sda
+Test path             build/tests/seq1/
+
+================================================
+
+
+--------------------CLEANING UP  OUTPUT#0--------------------
+2025-04-11 00:30:36.313 
+--------------------CLEANING UP  ERROR#0--------------------
+2025-04-11 00:30:36.313 umount: /mnt/snapshot: not mounted.
+rmmod: ERROR: Module disk_wrapper is not currently loaded
+rmmod: ERROR: Module cow_brd is not currently loaded
+
+--------------------Test #1--------------------
+2025-04-11 00:30:36.313 Running test : j-lang158as Crashmonkey standalone 
+Running test #1 : j-lang158
+2025-04-11 00:30:38.972 running 0x7ffe65366e58
+========== PHASE 0: Setting up CrashMonkey basics ==========
+Inserting RAM disk module
+*******Command for inserting cow brd module*************
+insmod ../build/cow_brd.ko num_disks=1 num_snapshots=20 disk_size=204800
+Success on Insertion RAM disk module
+Loading test case
+Loading permuter
+Updating dirty_expire_time_centisecs to 3000
+
+========== PHASE 1: Creating base disk image ==========
+Formatting test drive
+btrfs-progs v5.16.2
+See http://btrfs.wiki.kernel.org for more information.
+
+Performing full device TRIM /dev/cow_ram0 (200.00MiB) ...
+NOTE: several default settings have changed in version 5.15, please make sure
+      this does not affect your deployments:
+      - DUP for metadata (-m dup)
+      - enabled no-holes (-O no-holes)
+      - enabled free-space-tree (-R free-space-tree)
+
+Label:              (null)
+UUID:               8ec0e108-892b-4235-9ac1-4abb25f8515c
+Node size:          16384
+Sector size:        4096
+Filesystem size:    200.00MiB
+Block group profiles:
+  Data:             single            8.00MiB
+  Metadata:         DUP              32.00MiB
+  System:           DUP               8.00MiB
+SSD detected:       yes
+Zoned device:       no
+Incompat features:  extref, skinny-metadata, no-holes
+Runtime features:   free-space-tree
+Checksum:           crc32c
+Number of devices:  1
+Devices:
+   ID        SIZE  PATH
+    1   200.00MiB  /dev/cow_ram0
+
+Mounting test file system for pre-test setup
+Running pre-test setup
+Unmounting test file system after pre-test setup
+Making new snapshot
+cloning device /dev/cow_ram0
+
+========== PHASE 2: Recording user workload ==========
+Clearing caches
+Inserting wrapper module into kernel
+Command for inserting wrapper module
+insmod ../build/disk_wrapper.ko target_device_path=/dev/cow_ram_snapshot1_0 flags_device_path=/dev/sda
+insmod: ERROR: could not insert module ../build/disk_wrapper.ko: Invalid parameters
+Error inserting kernel wrapper moduleinsmod ../build/disk_wrapper.ko target_device_path=/dev/cow_ram_snapshot1_0 flags_device_path=/dev/sda
+
+--------------------CLEANING UP  OUTPUT#1--------------------
+2025-04-11 00:30:39.30 
+--------------------CLEANING UP  ERROR#1--------------------
+2025-04-11 00:30:39.30 umount: /mnt/snapshot: not mounted.
+rmmod: ERROR: Module disk_wrapper is not currently loaded
+rmmod: ERROR: Module cow_brd is not currently loaded
+2025-04-11 00:30:39.30 Retry running j-lang158
+2025-04-11 00:30:39.30 Running... 
+2025-04-11 00:30:39.30 2025-04-11 00:30:39.39 running 0x7ffe26f27b08
+========== PHASE 0: Setting up CrashMonkey basics ==========
+Error starting socket to listen on 98
+
+--------------------CLEANING UP  OUTPUT#1--------------------
+2025-04-11 00:30:39.50 
+--------------------CLEANING UP  ERROR#1--------------------
+2025-04-11 00:30:39.50 umount: /mnt/snapshot: not mounted.
+rmmod: ERROR: Module disk_wrapper is not currently loaded
+rmmod: ERROR: Module cow_brd is not currently loaded
+2025-04-11 00:30:39.50 Retry running j-lang158
+2025-04-11 00:30:39.50 Running... 
+2025-04-11 00:30:39.50 2025-04-11 00:30:41.715 running 0x7ffdeadde0d8
+========== PHASE 0: Setting up CrashMonkey basics ==========
+Inserting RAM disk module
+*******Command for inserting cow brd module*************
+insmod ../build/cow_brd.ko num_disks=1 num_snapshots=20 disk_size=204800
+Success on Insertion RAM disk module
+Loading test case
+Loading permuter
+Updating dirty_expire_time_centisecs to 3000
+
+========== PHASE 1: Creating base disk image ==========
+Formatting test drive
+btrfs-progs v5.16.2
+See http://btrfs.wiki.kernel.org for more information.
+
+Performing full device TRIM /dev/cow_ram0 (200.00MiB) ...
+NOTE: several default settings have changed in version 5.15, please make sure
+      this does not affect your deployments:
+      - DUP for metadata (-m dup)
+      - enabled no-holes (-O no-holes)
+      - enabled free-space-tree (-R free-space-tree)
+
+Label:              (null)
+UUID:               bfe9a87b-fb6b-48be-b6b1-9789daef3c2b
+Node size:          16384
+Sector size:        4096
+Filesystem size:    200.00MiB
+Block group profiles:
+  Data:             single            8.00MiB
+  Metadata:         DUP              32.00MiB
+  System:           DUP               8.00MiB
+SSD detected:       yes
+Zoned device:       no
+Incompat features:  extref, skinny-metadata, no-holes
+Runtime features:   free-space-tree
+Checksum:           crc32c
+Number of devices:  1
+Devices:
+   ID        SIZE  PATH
+    1   200.00MiB  /dev/cow_ram0
+
+Mounting test file system for pre-test setup
+Running pre-test setup
+Unmounting test file system after pre-test setup
+Making new snapshot
+cloning device /dev/cow_ram0
+
+========== PHASE 2: Recording user workload ==========
+Clearing caches
+Inserting wrapper module into kernel
+Command for inserting wrapper module
+insmod ../build/disk_wrapper.ko target_device_path=/dev/cow_ram_snapshot1_0 flags_device_path=/dev/sda
+insmod: ERROR: could not insert module ../build/disk_wrapper.ko: Invalid parameters
+Error inserting kernel wrapper moduleinsmod ../build/disk_wrapper.ko target_device_path=/dev/cow_ram_snapshot1_0 flags_device_path=/dev/sda
+
+--------------------CLEANING UP  OUTPUT#1--------------------
+2025-04-11 00:30:41.763 
+--------------------CLEANING UP  ERROR#1--------------------
+2025-04-11 00:30:41.763 umount: /mnt/snapshot: not mounted.
+rmmod: ERROR: Module disk_wrapper is not currently loaded
+rmmod: ERROR: Module cow_brd is not currently loaded
+2025-04-11 00:30:41.763 Retry running j-lang158
+2025-04-11 00:30:41.763 Running... 
+2025-04-11 00:30:41.763 2025-04-11 00:30:41.772 Could not run test : j-lang158
+--------------------CLEANING UP  OUTPUT#1--------------------
+2025-04-11 00:30:41.823 
+--------------------CLEANING UP  ERROR#1--------------------
+2025-04-11 00:30:41.823 umount: /mnt/snapshot: not mounted.
+rmmod: ERROR: Module disk_wrapper is not currently loaded
+rmmod: ERROR: Module cow_brd is not currently loaded
+
+--------------------Test #2--------------------
+2025-04-11 00:30:41.823 Running test : j-lang31as Crashmonkey standalone 
+Running test #2 : j-lang31
+2025-04-11 00:30:44.151 running 0x7ffd55ddb788
+========== PHASE 0: Setting up CrashMonkey basics ==========
+Inserting RAM disk module
+*******Command for inserting cow brd module*************
+insmod ../build/cow_brd.ko num_disks=1 num_snapshots=20 disk_size=204800
+Success on Insertion RAM disk module
+Loading test case
+Loading permuter
+Updating dirty_expire_time_centisecs to 3000
+
+========== PHASE 1: Creating base disk image ==========
+Formatting test drive
+btrfs-progs v5.16.2
+See http://btrfs.wiki.kernel.org for more information.
+
+Performing full device TRIM /dev/cow_ram0 (200.00MiB) ...
+NOTE: several default settings have changed in version 5.15, please make sure
+      this does not affect your deployments:
+      - DUP for metadata (-m dup)
+      - enabled no-holes (-O no-holes)
+      - enabled free-space-tree (-R free-space-tree)
+
+Label:              (null)
+UUID:               0d103475-673b-4510-bfb8-5b072448bbe6
+Node size:          16384
+Sector size:        4096
+Filesystem size:    200.00MiB
+Block group profiles:
+  Data:             single            8.00MiB
+  Metadata:         DUP              32.00MiB
+  System:           DUP               8.00MiB
+SSD detected:       yes
+Zoned device:       no
+Incompat features:  extref, skinny-metadata, no-holes
+Runtime features:   free-space-tree
+Checksum:           crc32c
+Number of devices:  1
+Devices:
+   ID        SIZE  PATH
+    1   200.00MiB  /dev/cow_ram0
+
+Mounting test file system for pre-test setup
+Running pre-test setup
+Unmounting test file system after pre-test setup
+Making new snapshot
+cloning device /dev/cow_ram0
+
+========== PHASE 2: Recording user workload ==========
+Clearing caches
+Inserting wrapper module into kernel
+Command for inserting wrapper module
+insmod ../build/disk_wrapper.ko target_device_path=/dev/cow_ram_snapshot1_0 flags_device_path=/dev/sda
+insmod: ERROR: could not insert module ../build/disk_wrapper.ko: Invalid parameters
+Error inserting kernel wrapper moduleinsmod ../build/disk_wrapper.ko target_device_path=/dev/cow_ram_snapshot1_0 flags_device_path=/dev/sda
+
+--------------------CLEANING UP  OUTPUT#2--------------------
+2025-04-11 00:30:44.197 
+--------------------CLEANING UP  ERROR#2--------------------
+2025-04-11 00:30:44.197 umount: /mnt/snapshot: not mounted.
+rmmod: ERROR: Module disk_wrapper is not currently loaded
+rmmod: ERROR: Module cow_brd is not currently loaded
+2025-04-11 00:30:44.197 Retry running j-lang31
+2025-04-11 00:30:44.197 Running... 
+2025-04-11 00:30:44.197 2025-04-11 00:30:44.207 running 0x7ffeb00820d8
+========== PHASE 0: Setting up CrashMonkey basics ==========
+Error starting socket to listen on 98
+
+--------------------CLEANING UP  OUTPUT#2--------------------
+2025-04-11 00:30:44.211 
+--------------------CLEANING UP  ERROR#2--------------------
+2025-04-11 00:30:44.211 umount: /mnt/snapshot: not mounted.
+rmmod: ERROR: Module disk_wrapper is not currently loaded
+rmmod: ERROR: Module cow_brd is not currently loaded
+2025-04-11 00:30:44.211 Retry running j-lang31
+2025-04-11 00:30:44.211 Running... 
+2025-04-11 00:30:44.211 2025-04-11 00:30:46.310 running 0x7fffc065f098
+========== PHASE 0: Setting up CrashMonkey basics ==========
+Inserting RAM disk module
+*******Command for inserting cow brd module*************
+insmod ../build/cow_brd.ko num_disks=1 num_snapshots=20 disk_size=204800
+Success on Insertion RAM disk module
+Loading test case
+Loading permuter
+Updating dirty_expire_time_centisecs to 3000
+
+========== PHASE 1: Creating base disk image ==========
+Formatting test drive
+btrfs-progs v5.16.2
+See http://btrfs.wiki.kernel.org for more information.
+
+Performing full device TRIM /dev/cow_ram0 (200.00MiB) ...
+NOTE: several default settings have changed in version 5.15, please make sure
+      this does not affect your deployments:
+      - DUP for metadata (-m dup)
+      - enabled no-holes (-O no-holes)
+      - enabled free-space-tree (-R free-space-tree)
+
+Label:              (null)
+UUID:               b818c795-6bf1-4912-8a7a-394de3ca3528
+Node size:          16384
+Sector size:        4096
+Filesystem size:    200.00MiB
+Block group profiles:
+  Data:             single            8.00MiB
+  Metadata:         DUP              32.00MiB
+  System:           DUP               8.00MiB
+SSD detected:       yes
+Zoned device:       no
+Incompat features:  extref, skinny-metadata, no-holes
+Runtime features:   free-space-tree
+Checksum:           crc32c
+Number of devices:  1
+Devices:
+   ID        SIZE  PATH
+    1   200.00MiB  /dev/cow_ram0
+
+Mounting test file system for pre-test setup
+Running pre-test setup
+Unmounting test file system after pre-test setup
+Making new snapshot
+cloning device /dev/cow_ram0
+
+========== PHASE 2: Recording user workload ==========
+Clearing caches
+Inserting wrapper module into kernel
+Command for inserting wrapper module
+insmod ../build/disk_wrapper.ko target_device_path=/dev/cow_ram_snapshot1_0 flags_device_path=/dev/sda
+insmod: ERROR: could not insert module ../build/disk_wrapper.ko: Invalid parameters
+Error inserting kernel wrapper moduleinsmod ../build/disk_wrapper.ko target_device_path=/dev/cow_ram_snapshot1_0 flags_device_path=/dev/sda
+
+--------------------CLEANING UP  OUTPUT#2--------------------
+2025-04-11 00:30:46.352 
+--------------------CLEANING UP  ERROR#2--------------------
+2025-04-11 00:30:46.352 umount: /mnt/snapshot: not mounted.
+rmmod: ERROR: Module disk_wrapper is not currently loaded
+rmmod: ERROR: Module cow_brd is not currently loaded
+2025-04-11 00:30:46.352 Retry running j-lang31
+2025-04-11 00:30:46.352 Running... 
+2025-04-11 00:30:46.352 2025-04-11 00:30:46.361 Could not run test : j-lang31
+2025-04-11 00:30:46.405 : Test completed. See logfile-xfsMonkey.log for test summary

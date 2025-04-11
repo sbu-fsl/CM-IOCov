@@ -46,6 +46,7 @@ def cleanup():
     (out, err) = p.communicate()
     p.wait()
     #print 'Done cleaning up test harness'
+    return out, err
 
 def get_current_epoch_micros():
     return int(time.time() * 1000)
@@ -92,7 +93,7 @@ def validate_setup(parsed_args):
 def main():
 
     # Open the log file
-    log_file = time.strftime('%Y%m%d_%H%M%S') + '-xfsMonkey.log'
+    log_file = 'logfile-xfsMonkey.log' #time.strftime('%Y%m%d_%H%M%S') + '-xfsMonkey.log'
     log_file_handle = open(log_file, 'w')
     original = sys.stdout
     sys.stdout = Log(sys.stdout, log_file_handle)
@@ -115,6 +116,8 @@ def main():
 
     for filename in os.listdir(xfsMonkeyTestPath):
         if filename.endswith('.so'): 
+            if test_num == 2:
+                break
 
             #Assign a snapshot file name for replay using CrashMonkey.
             #If we have a large number of tests in the test suite, then this might blow 
@@ -129,9 +132,16 @@ def main():
             parsed_args.test_dev +' -t ' + parsed_args.fs_type + ' -e ' + 
             str(parsed_args.disk_size) + ' ' + test_file + ' 2>&1')
     
-            #Cleanup errors due to prev runs if any
-            cleanup()
-
+            #Cleanup errors due to prev runs if any 
+            outClean, errClean = cleanup()
+            outClean = outClean.decode("utf-8")
+            errClean = errClean.decode("utf-8")
+            log = '\n' + '-'*20 + 'CLEANING UP  OUTPUT#' + str(test_num) +  '-'*20 + '\n'
+            log_file_handle.write(log)
+            log_file_handle.write(get_time_string() +  outClean)
+            log = '\n' + '-'*20 + 'CLEANING UP  ERROR#' + str(test_num) +  '-'*20 + '\n'
+            log_file_handle.write(log)
+            log_file_handle.write(get_time_string() + errClean)
 
             #Print the test number
             test_num+=1
@@ -141,18 +151,18 @@ def main():
             #Run the test now
             log =  get_time_string() + 'Running test : '+ filename.replace('.so', '') + 'as Crashmonkey standalone \n'
             log_file_handle.write(log)
-            sys.stdout.write('Running test #' + str(test_num) + ' : ' + filename.replace('.so', '')) 
+            sys.stdout.write('Running test #' + str(test_num) + ' : ' + filename.replace('.so', '') + '\n') 
             #get_time_string(), 'Running...'
             
             #Sometimes we face an error connecting to socket. So let's retry one more time
             #if CM throws a error for a particular test.
             retry = 0
             while True:
-                p=subprocess.Popen(command, stdout=subprocess.PIPE, shell=True)
-                print(command)
+                p=subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
                 (output,err)=p.communicate()
                 p_status=p.wait()
                 output = output.decode("utf-8")
+                err = err.decode("utf-8")
 
 
                 # Printing the output on stdout seems too noisy. It's cleaner to have only the result
@@ -160,8 +170,8 @@ def main():
                 # the test case hung. 
                 # (TODO : Add a flag in c_harness to interactively print when we wait for writeback
                 # or start testing)
-                #res = re.sub(r'(?s).*Reordering', '\nReordering', output, flags=re.I)
-                #res_final = re.sub(r'==.*==', '\n', res).strip()
+                res = re.sub(r'(?s).*Reordering', '\nReordering', output, flags=re.I)
+                res_final = re.sub(r'==.*==', '\n', res).strip()
 
                 #print output
                 retry += 1
@@ -169,15 +179,28 @@ def main():
                     if retry == 4 and p_status != 0 :
                         log_file_handle.write(get_time_string() + 'Could not run test : ' + filename.replace('.so', ''))
                     else:
+                        # log_file_handle.write(res_final)
                         log_file_handle.write(output)
                     break
                 else:
                     error = re.sub(r'(?s).*error', '\nError', output, flags=re.I)
+                    # log_file_handle.write(get_time_string() +  error)
                     log_file_handle.write(get_time_string() +  output)
                     #os.system('bash vm_scripts/cm_cleanup.sh')
-                    cleanup()
-                    log_file_handle.write(get_time_string() + 'Retry running ' + filename.replace('.so', '') + '\n' + get_time_string() + 'Running... ')     
-            file = filename.replace('.so', '')          
+
+                    outClean, errClean = cleanup()
+                    outClean = outClean.decode("utf-8")
+                    errClean = errClean.decode("utf-8")
+                    log = '\n' + '-'*20 + 'CLEANING UP  OUTPUT#' + str(test_num) +  '-'*20 + '\n'
+                    log_file_handle.write(log)
+                    log_file_handle.write(get_time_string() +  outClean)
+                    log = '\n' + '-'*20 + 'CLEANING UP  ERROR#' + str(test_num) +  '-'*20 + '\n'
+                    log_file_handle.write(log)
+                    log_file_handle.write(get_time_string() + errClean)
+
+                    log_file_handle.write(get_time_string() + 'Retry running ' + filename.replace('.so', '') + '\n' + get_time_string() + 'Running... \n')
+                log_file_handle.write(get_time_string() +  err) 
+            file = filename.replace('.so', '')			
             #diff_command = 'tail -vn +1 build/diff* >> diff_results/' + file  + '; rm build/diff*' 
             #subprocess.call('cat build/diff* > out', shell=True)
             
