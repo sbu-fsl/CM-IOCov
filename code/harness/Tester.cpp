@@ -183,6 +183,11 @@ int Tester::mount_wrapper_device(const char* opts) {
 }
 
 int Tester::mount_device(const char* dev, const char* opts) {
+  cout << dev <<  endl;
+  cout << "Operations : " << opts << endl;
+  cout << "Mount Point: " << MNT_MNT_POINT << endl;
+  cout << "fs type: " << fs_type.c_str() << endl;
+
   if (mount(dev, MNT_MNT_POINT, fs_type.c_str(), 0, (void*) opts) < 0) {
     disk_mounted = false;
     return MNT_MNT_ERR;
@@ -343,6 +348,9 @@ int Tester::remove_wrapper() {
   if (wrapper_inserted) {
     int res, num_tries = 0;
     string command = WRAPPER_RMMOD SILENT;
+    cout << "Commands for removing disk wrapper module" << endl;
+    cout << command << endl;
+    
     time_point<steady_clock> rmmod_start_time = steady_clock::now();
     do {
       res = system(command.c_str());

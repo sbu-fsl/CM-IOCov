@@ -303,54 +303,55 @@
    return err;
  }
  //Used instead of brd_make_request
- static void brd_submit_bio(struct bio *bio)
- {	
-   printk(KERN_WARNING DEVICE_NAME ": In brd_submit_bio Line : 308\n");
-   struct brd_device *brd = bio->BI_DISK->private_data;
-   sector_t sector = bio->BI_SECTOR;
-   struct bio_vec bvec;
-   struct bvec_iter iter;
-   bool rw;
-   if (bio_end_sector(bio) > get_capacity(bio->BI_DISK)) {
-     bio_io_error(bio);
-     return;
-   }
- 
-   rw = BIO_IS_WRITE(bio);
-   printk(KERN_WARNING DEVICE_NAME ": In brd_submit_bio Line : 341 %d\n", sector);
-   bio->bi_opf |= REQ_SYNC;
-   if ((rw || bio->BI_RW & BIO_DISCARD_FLAG) && !brd->is_writable) {
-     bio_io_error(bio);
-     return;
-   }
-   if (unlikely(bio_op(bio) == BIO_DISCARD_FLAG)) {
-     discard_from_brd(brd, sector, bio->BI_SIZE);
-     bio_endio(bio);
-     return;
-     }
-   bio_for_each_segment(bvec, bio, iter) {
-     unsigned int len = bvec.bv_len;
-     int err;
-     // WARN_ON_ONCE((bvec.bv_offset & (SECTOR_SIZE - 1)) ||
-     // 		(len & (SECTOR_SIZE - 1)));
-     err = brd_do_bvec(brd, bvec.bv_page, len, bvec.bv_offset,
-           bio->bi_opf, sector);
-     if (err) {
-       printk(KERN_WARNING DEVICE_NAME ": In brd_submit_bio Line : 326\n");
-       bio_io_error(bio);
-       return;
-     }
-     sector += len >> SECTOR_SHIFT;
-     printk(KERN_WARNING DEVICE_NAME ": In brd_submit_bio Line : 341 %d\n", sector);
-   }
-   printk(KERN_WARNING DEVICE_NAME ": In brd_submit_bio Line : 343\n");
-   struct buffer_head *bh = bio->bi_private;
-   if(!bh) {
-     printk(KERN_WARNING DEVICE_NAME ": In brd_submit_bio Line : 348\n");
-   }
-   bio_endio(bio);
-   printk(KERN_WARNING DEVICE_NAME ": In brd_submit_bio Line : 351\n");
- }
+static void brd_submit_bio(struct bio *bio){	
+  // printk(KERN_WARNING DEVICE_NAME ": Start Submit bio...\n");
+  struct brd_device *brd = bio->BI_DISK->private_data;
+  sector_t sector = bio->BI_SECTOR;
+  struct bio_vec bvec;
+  struct bvec_iter iter;
+  bool rw;
+  if (bio_end_sector(bio) > get_capacity(bio->BI_DISK)) {
+    bio_io_error(bio);
+    return;
+  }
+
+  rw = BIO_IS_WRITE(bio);
+  // printk(KERN_WARNING DEVICE_NAME ": In brd_submit_bio Line : 341 %llu\n", sector);
+  bio->bi_opf |= REQ_SYNC;
+  if ((rw || bio->BI_RW & BIO_DISCARD_FLAG) && !brd->is_writable) {
+    bio_io_error(bio);
+    return;
+  }
+  if (unlikely(bio_op(bio) == BIO_DISCARD_FLAG)) {
+    discard_from_brd(brd, sector, bio->BI_SIZE);
+    bio_endio(bio);
+    return;
+  }
+  bio_for_each_segment(bvec, bio, iter) {
+    unsigned int len = bvec.bv_len;
+    int err;
+    // WARN_ON_ONCE((bvec.bv_offset & (SECTOR_SIZE - 1)) ||
+    // 		(len & (SECTOR_SIZE - 1)));
+    err = brd_do_bvec(brd, bvec.bv_page, len, bvec.bv_offset,
+          bio->bi_opf, sector);
+    if (err) {
+      // printk(KERN_WARNING DEVICE_NAME ": In brd_submit_bio Line : 326\n");
+      bio_io_error(bio);
+      return;
+    }
+    sector += len >> SECTOR_SHIFT;
+    // printk(KERN_WARNING DEVICE_NAME ": In brd_submit_bio Line : 341 %llu\n", sector);
+  }
+  // printk(KERN_WARNING DEVICE_NAME ": In brd_submit_bio Line : 343\n");
+  struct buffer_head *bh = bio->bi_private;
+  if(!bh) {
+    // printk(KERN_WARNING DEVICE_NAME ": In brd_submit_bio Line : 348\n");
+  }
+  bio_endio(bio);
+  // printk(KERN_WARNING DEVICE_NAME ": FInish Submit bio\n");
+}
+
+
  #ifdef CONFIG_BLK_DEV_XIP
  static int brd_direct_access(struct block_device *bdev, sector_t sector,
        void **kaddr, unsigned long *pfn)
@@ -465,21 +466,21 @@
    struct gendisk *disk;
    char buf[200];
    int err = -ENOMEM;
-   struct queue_limits lim = {
-     /*
-      * This is so fdisk will align partitions on 4k, because of
-      * direct_access API needing 4k alignment, returning a PFN
-      * (This is only a problem on very small devices <= 4M,
-      *  otherwise fdisk will align on 1M. Regardless this call
-      *  is harmless)
-      */
-     .physical_block_size	= PAGE_SIZE,
-     .max_hw_discard_sectors	= UINT_MAX,
-     .max_discard_segments	= 1,
-     .discard_granularity	= PAGE_SIZE,
-     .features		= BLK_FEAT_SYNCHRONOUS |
-             BLK_FEAT_NOWAIT,
-   };
+  //  struct queue_limits lim = {
+  //    /*
+  //     * This is so fdisk will align partitions on 4k, because of
+  //     * direct_access API needing 4k alignment, returning a PFN
+  //     * (This is only a problem on very small devices <= 4M,
+  //     *  otherwise fdisk will align on 1M. Regardless this call
+  //     *  is harmless)
+  //     */
+  //    .physical_block_size	= PAGE_SIZE,
+  //    .max_hw_discard_sectors	= UINT_MAX,
+  //    .max_discard_segments	= 1,
+  //    .discard_granularity	= PAGE_SIZE,
+  //    .features		= BLK_FEAT_SYNCHRONOUS |
+  //            BLK_FEAT_NOWAIT,
+  //  };
    list_for_each_entry(brd, &brd_devices, brd_list)
      if (brd->brd_number == i)
        return -EEXIST;
@@ -512,11 +513,12 @@
    // brd->brd_queue->limits.discard_granularity = PAGE_SIZE;
    // brd->brd_queue->limits.max_discard_sectors = UINT_MAX;
    disk->major		= major_num;
-   disk->first_minor	= i * max_part;
+   disk->first_minor	= i * max_part; //i << part_shift; //;
    disk->fops		= &brd_fops;
    disk->private_data	= brd;
-   disk->minors		= max_part;
-   printk(KERN_WARNING DEVICE_NAME ": In brd_alloc Line : 478\n");
+   disk->minors		= max_part; // max_part = 1
+
+  //  printk(KERN_WARNING DEVICE_NAME ": In brd_alloc Line : 478\n");
    if (brd->is_snapshot) {
        sprintf(disk->disk_name, "cow_ram_snapshot%d_%d", i / num_disks,
          i % num_disks);
@@ -524,9 +526,9 @@
    else {
      sprintf(disk->disk_name, "cow_ram%d", i);
    }
-   printk(KERN_WARNING DEVICE_NAME ": In brd_alloc Line : 489\n");
+  //  printk(KERN_WARNING DEVICE_NAME ": In brd_alloc Line : 489\n");
    set_capacity(disk, disk_size * 2);
-   printk(KERN_WARNING DEVICE_NAME ": In brd_alloc Line : 492\n");
+  //  printk(KERN_WARNING DEVICE_NAME ": In brd_alloc Line : 492\n");
    err = add_disk(disk);
    if (err)
      goto out_cleanup_disk;
