@@ -132,14 +132,14 @@ static int brd_insert_page(struct brd_device *brd, sector_t sector, gfp_t gfp)
 /*
  * Zero out a page (set to all 0s)
  */
-static void brd_zero_page(struct brd_device *brd, sector_t sector)
-{
-    struct page *page;
+// static void brd_zero_page(struct brd_device *brd, sector_t sector)
+// {
+//     struct page *page;
 
-    page = brd_lookup_page(brd, sector);
-    if (page)
-      clear_highpage(page);
-}
+//     page = brd_lookup_page(brd, sector);
+//     if (page)
+//       clear_highpage(page);
+// }
 
 
 /* Free all backing store pages and xarray. This must only be called when
@@ -181,14 +181,14 @@ static int copy_to_brd_setup(struct brd_device *brd, sector_t sector, size_t n, 
 }
 
 
-static void discard_from_brd(struct brd_device *brd, sector_t sector, size_t n)
-{
-    while (n >= PAGE_SIZE) {
-        brd_zero_page(brd, sector);
-      sector += PAGE_SIZE >> SECTOR_SHIFT;
-      n -= PAGE_SIZE;
-    }
-}
+// static void discard_from_brd(struct brd_device *brd, sector_t sector, size_t n)
+// {
+//     while (n >= PAGE_SIZE) {
+//         brd_zero_page(brd, sector);
+//       sector += PAGE_SIZE >> SECTOR_SHIFT;
+//       n -= PAGE_SIZE;
+//     }
+// }
 
 
 /*
@@ -330,10 +330,7 @@ static void brd_do_discard(struct brd_device *brd, sector_t sector, u32 size)
 
 //Used instead of brd_make_request
 static void brd_submit_bio(struct bio *bio){	
-    // printk(KERN_WARNING DEVICE_NAME ": Start Submit bio...\n");
-    // struct brd_device *brd = bio->BI_DISK->private_data;
     struct brd_device *brd = bio->bi_bdev->bd_disk->private_data;
-    //sector_t sector = bio->BI_SECTOR;
     sector_t sector = bio->bi_iter.bi_sector;
     struct bio_vec bvec;
     struct bvec_iter iter;
@@ -381,7 +378,6 @@ static void brd_submit_bio(struct bio *bio){
     }
 
     bio_endio(bio);
-    // printk(KERN_WARNING DEVICE_NAME ": FInish Submit bio\n");
 }
 
 
@@ -469,7 +465,7 @@ static int num_disks = 1;
 static int num_snapshots = 1;
 // int disk_size = DEFAULT_COW_RD_SIZE;
 static int max_part = 1;
-static int part_shift;
+// static int part_shift;
 
 module_param(num_disks, int, 0444);
 MODULE_PARM_DESC(num_disks, "Maximum number of ram block devices");
@@ -587,14 +583,6 @@ static int brd_alloc(int i)
     } else {
         brd->parent_brd = NULL;
     }
-    
-    if(!brd->brd_disk->part0){
-        pr_info("cow: during allocating, part0 doesn't exist\n");
-    } else {
-        pr_info("cow: during allocating, part0 exists\n");
-        pr_info("cow: checking device name (disk)->part0->bd_device: %s\n", 
-          brd->brd_disk->part0->bd_device.init_name);
-    }
 
     return 0;
 
@@ -607,15 +595,15 @@ out_free_dev:
 }
 
 
-static void brd_probe(dev_t dev)
-{
-    brd_alloc(MINOR(dev) / max_part);
-}
+// static void brd_probe(dev_t dev)
+// {
+//     brd_alloc(MINOR(dev) / max_part);
+// }
 
 
 static void brd_cleanup(void)
 {
-    struct brd_device *brd, *next, *culprit_brd;
+    struct brd_device *brd, *next;
 
     debugfs_remove_recursive(brd_debugfs_dir);
 
@@ -623,56 +611,12 @@ static void brd_cleanup(void)
 
         pr_info("cow: cleaning up brd num %d\n", brd->brd_number);
 
-        if(brd->brd_number == 1) {
-          culprit_brd = brd;
-          continue;
-        }
-
         del_gendisk(brd->brd_disk);
-        pr_info("cow: del_gendisk done...\n");
-
         put_disk(brd->brd_disk);
-        pr_info("cow: put_disk done.....\n");
-
         brd_free_pages(brd);
-        pr_info("cow: brd_free_pages done....\n");
-
         list_del(&brd->brd_list);
-        pr_info("cow: list_del done....\n");
-
         kfree(brd);
-        pr_info("cow: kfree done....\n");
     }
-
-    pr_info("cow: cleaning up culprit brd num %d\n", culprit_brd->brd_number);
-
-    pr_info("cow: Freezing the queue...\n");
-    blk_mq_freeze_queue(culprit_brd->brd_disk->queue);
-
-    // pr_info("cow: quiesce the queue...\n");
-    // blk_mq_quiesce_queue(parent_brd->brd_disk->queue);
-
-    pr_info("cow: clearing the queue...\n");
-		blk_put_queue(culprit_brd->brd_disk->queue);
-
-    // pr_info("cow: destroying the queue....\n");
-    // blk_mq_destroy_queue(parent_brd->brd_disk->queue);
-    
-
-    del_gendisk(culprit_brd->brd_disk);
-    pr_info("cow: del_gendisk done...\n");
-
-    put_disk(culprit_brd->brd_disk);
-    pr_info("cow: put_disk done.....\n");
-
-    brd_free_pages(culprit_brd);
-    pr_info("cow: brd_free_pages done....\n");
-
-    list_del(&culprit_brd->brd_list);
-    pr_info("cow: list_del done....\n");
-
-    kfree(culprit_brd);
-    pr_info("cow: kfree done....\n");
 }
 
 
@@ -716,7 +660,6 @@ static int __init brd_init(void)
     }
 
     for (i = 0; i < nr; i++) {
-        //printk(KERN_WARNING DEVICE_NAME ": BRD_ALLOC loop\n");
         err = brd_alloc(i);
         if (err)
             goto out_free;
@@ -751,8 +694,6 @@ static void __exit brd_exit(void)
 {
     pr_info("cow_brd: Cleaning up the device...\n");
     brd_cleanup();
-    pr_info("cow_brd: Cleaning up the device Done. Starting to unregister...\n");
-
     unregister_blkdev(major_num, DEVICE_NAME);
     
     pr_info("brd: module unloaded\n");

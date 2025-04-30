@@ -52,7 +52,7 @@ static struct hwm_device {
     struct gendisk* target_dev;
     u8 target_partno;
     struct block_device* target_bd;
-    struct file *bdev_file;
+    // struct file *bdev_file;
     
     // Pointer to first write op in the chain.
     struct disk_write_op* writes;
@@ -227,10 +227,7 @@ static unsigned long long convert_flags(unsigned long long flags)
     if ((flags & REQ_OP_MASK) == REQ_OP_SECURE_ERASE) {
         res |= HWM_SECURE_FLAG;
     }
-    // REQ_OP_WRITE_SAME flag is absent in 6.12
-    // if ((flags & REQ_OP_MASK) == REQ_OP_WRITE_SAME) {
-    //   res |= HWM_WRITE_SAME_FLAG;
-    // }
+
     if ((flags & REQ_OP_MASK) == REQ_OP_WRITE_ZEROES) {
         res |= HWM_WRITE_ZEROES_FLAG;
     }
@@ -302,25 +299,25 @@ static bool should_log(struct bio *bio)
  * because I'm too lazy to do all the flag translations for this in 4.15. See
  * the output log of a workload for the textual values CrashMonkey spits out.
  */
-static void print_rw_flags(unsigned long rw, unsigned long flags) 
-{
-    int i;
-    printk(KERN_INFO "\traw rw flags: 0x%.8lx\n", rw);
-    for (i = REQ_OP_WRITE; i < __REQ_NR_BITS; i++) {
-        if (rw & (1ULL << i)) {
-            printk(KERN_INFO "\t%s\n", flag_names[i]);
-        }
-    }
-    printk(KERN_INFO "\traw flags flags: %.8lx\n", flags);
-    for (i = REQ_OP_WRITE; i < __REQ_NR_BITS; i++) {
-        if (flags & (1ULL << i)) {
-            printk(KERN_INFO "\t%s\n", flag_names[i]);
-        }
-    }
-}
+// static void print_rw_flags(unsigned long rw, unsigned long flags) 
+// {
+//     int i;
+//     printk(KERN_INFO "\traw rw flags: 0x%.8lx\n", rw);
+//     for (i = REQ_OP_WRITE; i < __REQ_NR_BITS; i++) {
+//         if (rw & (1ULL << i)) {
+//             printk(KERN_INFO "\t%s\n", flag_names[i]);
+//         }
+//     }
+//     printk(KERN_INFO "\traw flags flags: %.8lx\n", flags);
+//     for (i = REQ_OP_WRITE; i < __REQ_NR_BITS; i++) {
+//         if (flags & (1ULL << i)) {
+//             printk(KERN_INFO "\t%s\n", flag_names[i]);
+//         }
+//     }
+// }
 
 
-// TODO(ashmrtn): Currently not thread safe/reentrant. Make it so.
+// Currently not thread safe/reentrant. Make it so.
 static void disk_wrapper_bio(struct bio* bio) 
 {
     int copied_data;
@@ -337,9 +334,9 @@ static void disk_wrapper_bio(struct bio* bio)
     if (Device.log_on && should_log(bio)) {
         curr_time = ktime_get();
 
-        printk(KERN_WARNING "hwm: bio rw of size %u headed for 0x%llu (sector 0x%llu)"
-                        " has flags:\n", bio->BI_SIZE, bio->BI_SECTOR * 512, bio->BI_SECTOR);
-        print_rw_flags(bio->BI_RW, bio->bi_flags);
+        // printk(KERN_WARNING "hwm: bio rw of size %u headed for 0x%llu (sector 0x%llu)"
+        //                 " has flags:\n", bio->BI_SIZE, bio->BI_SECTOR * 512, bio->BI_SECTOR);
+        // print_rw_flags(bio->BI_RW, bio->bi_flags);
 
         // Log data to disk logs.
         write = kzalloc(sizeof(struct disk_write_op), GFP_NOIO);
@@ -395,9 +392,9 @@ static void disk_wrapper_bio(struct bio* bio)
           copied_data += vec.bv_len;
         }
         // Sanity check which prints data copied to the log.
-        printk(KERN_INFO "hwm: copied %u bytes of from %lx data:"
-            "\n~~~\n%p\n~~~\n",
-            write->metadata.size, write->metadata.write_sector * 512, write->data);
+        // printk(KERN_INFO "hwm: copied %u bytes of from %lx data:"
+        //     "\n~~~\n%p\n~~~\n",
+        //     write->metadata.size, write->metadata.write_sector * 512, write->data);
     }
 
 passthrough:
@@ -406,11 +403,11 @@ passthrough:
     hwm = (struct hwm_device*) &Device;
 
     bio->bi_bdev = hwm->target_bd;
-    printk(KERN_WARNING "hwm: target device: %s \n", bio->bi_bdev->bd_disk->disk_name);
-    printk(KERN_WARNING "hwm: Major number is %d:\n", hwm->gd->major);
-    printk(KERN_WARNING "hwm: Sending bio to cow_brd\n");
+    // printk(KERN_WARNING "hwm: target device: %s \n", bio->bi_bdev->bd_disk->disk_name);
+    // printk(KERN_WARNING "hwm: Major number is %d:\n", hwm->gd->major);
+    // printk(KERN_WARNING "hwm: Sending bio to cow_brd\n");
     submit_bio(bio);
-    printk(KERN_WARNING "hwm: Sending bio to cow_brd done.....\n");
+    // printk(KERN_WARNING "hwm: Sending bio to cow_brd done.....\n");
 }
 
 
@@ -490,14 +487,14 @@ static int __init disk_wrapper_init(void)
         goto out;
     }
 
-    pr_info("hwm: opened “%s” → disk=%s major=%d minor=%d "
-       "capacity=%llu sectors, log_blk_sz=%u\n",
-       target_device_path,
-       target_device->bd_disk->disk_name,
-       MAJOR(target_device->bd_dev),
-       MINOR(target_device->bd_dev),
-       (unsigned long long)get_capacity(target_device->bd_disk),
-       queue_logical_block_size(target_device->bd_disk->queue));
+    // pr_info("hwm: opened “%s” → disk=%s major=%d minor=%d "
+    //    "capacity=%llu sectors, log_blk_sz=%u\n",
+    //    target_device_path,
+    //    target_device->bd_disk->disk_name,
+    //    MAJOR(target_device->bd_dev),
+    //    MINOR(target_device->bd_dev),
+    //    (unsigned long long)get_capacity(target_device->bd_disk),
+    //    queue_logical_block_size(target_device->bd_disk->queue));
        
     Device.target_dev = target_device->bd_disk;
     Device.target_partno = bdev_partno(target_device);
@@ -594,25 +591,17 @@ static void __exit hello_cleanup(void) {
     printk(KERN_INFO "hwm: Starting clean up ....\n");
 
     free_logs();
-    printk(KERN_INFO "hwm: Free_logs done...\n");
     // fput(Device.bdev_file);
 
     if (bdev_file) {
         fput(bdev_file);
     }
-
-    // put_disk(Device.gd);
     if (Device.gd->queue){
       blk_put_queue(Device.gd->queue);
     }
 
-    printk(KERN_INFO "hwm: del_gendisk is starting....\n");
-    del_gendisk(Device.gd);
-    printk(KERN_INFO "hwm: del_gendisk done....\n");
-    
-    put_disk(Device.gd);
-    printk(KERN_INFO "hwm: put disk done .... \n");
-      
+    del_gendisk(Device.gd);    
+    put_disk(Device.gd);      
     unregister_blkdev(major_num, "hwm");
 
     printk(KERN_INFO "hwm: Cleaning up bye!\n");
