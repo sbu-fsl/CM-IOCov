@@ -321,6 +321,7 @@ int main(int argc, char** argv) {
       return -1;
   }
   
+  
   test_harness.test_init_values(mount_dir, test_dev_size);
   
   // Load the permuter to use for the test.

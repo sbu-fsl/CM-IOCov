@@ -24,8 +24,9 @@
 #include <linux/backing-dev.h>
 #include <linux/debugfs.h>
 #include <linux/uaccess.h>
-#include <asm/uaccess.h>
-
+// #include <asm/uaccess.h>
+#include <linux/blk-mq.h>
+#include <linux/workqueue.h>
 
 #include "disk_wrapper_ioctl.h"
 #include "bio_alias.h"
@@ -51,7 +52,7 @@ struct brd_device {
     bool  is_writable;
     bool  is_snapshot;
 
-    struct request_queue  *brd_queue;
+    // struct request_queue  *brd_queue;
     struct gendisk    *brd_disk;
     struct list_head  brd_list;
 
@@ -71,6 +72,7 @@ static struct page *brd_lookup_page(struct brd_device *brd, sector_t sector)
     return xa_load(&brd->brd_pages, sector >> PAGE_SECTORS_SHIFT);
 }
 
+
 /*
  * Insert a new page for a given sector, if one does not already exist.
  */
@@ -84,43 +86,43 @@ static int brd_insert_page(struct brd_device *brd, sector_t sector, gfp_t gfp)
 
     page = brd_lookup_page(brd, sector);
     if (page)
-      return 0;
+        return 0;
 
     page = alloc_page(gfp | __GFP_ZERO | __GFP_HIGHMEM);
     if (!page)
-      return -ENOMEM;
+        return -ENOMEM;
 
     xa_lock(&brd->brd_pages);
 
     ret = __xa_insert(&brd->brd_pages, idx, page, gfp);
 
     if (!ret)
-      brd->brd_nr_pages++;
+        brd->brd_nr_pages++;
 
     xa_unlock(&brd->brd_pages);
 
     if (ret < 0) {
-      __free_page(page);
-      if (ret == -EBUSY)
-        ret = 0;
+        __free_page(page);
+        if (ret == -EBUSY)
+            ret = 0;
     }
 
-    // Copy over the data in the parent's page to the snapshot page if the parent
+    // Copy over the data from the parent's page to the snapshot page if the parent
     // has a page in this sector address.
     if (brd->parent_brd) {
-      parent_page = brd_lookup_page(brd->parent_brd, sector);
-      // This page may not have originally existed in the parent.
-      if (parent_page) {
-        // Map both the parent and snapshot pages so that the kernel can access
-        // those addresses. The snapshot page and the parent page both already
-        // reside in radix trees, so even when we unmap the pages, the data and
-        // the page itself will still remain.
-        dst = kmap_atomic(page);
-        parent_src = kmap_atomic(parent_page);
-        memcpy(dst, parent_src, PAGE_SIZE);
-        kunmap_atomic(parent_src);
-        kunmap_atomic(dst);
-      }
+        parent_page = brd_lookup_page(brd->parent_brd, sector);
+        // This page may not have originally existed in the parent.
+        if (parent_page) {
+            // Map both the parent and snapshot pages so that the kernel can access
+            // those addresses. The snapshot page and the parent page both already
+            // reside in radix trees, so even when we unmap the pages, the data and
+            // the page itself will still remain.
+            dst = kmap_atomic(page);
+            parent_src = kmap_atomic(parent_page);
+            memcpy(dst, parent_src, PAGE_SIZE);
+            kunmap_atomic(parent_src);
+            kunmap_atomic(dst);
+        }
     }
 
     return ret;
@@ -139,6 +141,7 @@ static void brd_zero_page(struct brd_device *brd, sector_t sector)
       clear_highpage(page);
 }
 
+
 /* Free all backing store pages and xarray. This must only be called when
  * there are no other users of the device.
  */
@@ -155,12 +158,12 @@ static void brd_free_pages(struct brd_device *brd)
     xa_destroy(&brd->brd_pages);
 }
 
+
 /*
  * copy_to_brd_setup must be called before copy_to_brd. It may sleep.
  * Allocates the required pages in brd before copying n bytes
  */
-static int copy_to_brd_setup(struct brd_device *brd, sector_t sector, size_t n,
-          gfp_t gfp)
+static int copy_to_brd_setup(struct brd_device *brd, sector_t sector, size_t n, gfp_t gfp)
 {
     unsigned int offset = (sector & (PAGE_SECTORS-1)) << SECTOR_SHIFT;
     size_t copy;
@@ -178,8 +181,7 @@ static int copy_to_brd_setup(struct brd_device *brd, sector_t sector, size_t n,
 }
 
 
-static void discard_from_brd(struct brd_device *brd,
-      sector_t sector, size_t n)
+static void discard_from_brd(struct brd_device *brd, sector_t sector, size_t n)
 {
     while (n >= PAGE_SIZE) {
         brd_zero_page(brd, sector);
@@ -192,8 +194,7 @@ static void discard_from_brd(struct brd_device *brd,
 /*
  * Copy n bytes from src to the brd starting at sector. Does not sleep.
  */
-static void copy_to_brd(struct brd_device *brd, const void *src,
-      sector_t sector, size_t n)
+static void copy_to_brd(struct brd_device *brd, const void *src, sector_t sector, size_t n)
 {
     struct page *page;
     void *dst;
@@ -225,8 +226,7 @@ static void copy_to_brd(struct brd_device *brd, const void *src,
 /*
  * Copy n bytes to dst from the brd starting at sector. Does not sleep.
  */
-static void copy_from_brd(void *dst, struct brd_device *brd,
-      sector_t sector, size_t n)
+static void copy_from_brd(void *dst, struct brd_device *brd, sector_t sector, size_t n)
 {
     struct page *page;
     void *src;
@@ -245,11 +245,10 @@ static void copy_from_brd(void *dst, struct brd_device *brd,
         src = kmap_atomic(page);
         memcpy(dst, src + offset, copy);
         kunmap_atomic(src);
-  } else {
-        // Page doesn't exist in either of the xarray, so it must never have
-        // been written
-        memset(dst, 0, copy);
-  }
+    } else {
+          // Page doesn't exist in either of the xarray, so it must never have been written
+          memset(dst, 0, copy);
+    }
 
     if (copy < n) {
         dst += copy;
@@ -565,7 +564,7 @@ static int brd_alloc(int i)
     // if (!brd->brd_queue)
     //     goto out_free_dev;
 
-    disk->major		= RAMDISK_MAJOR;
+    disk->major		= major_num;
     disk->first_minor	= i * max_part; 
     disk->fops		= &brd_fops;
     disk->private_data	= brd;
@@ -587,7 +586,15 @@ static int brd_alloc(int i)
         }
     } else {
         brd->parent_brd = NULL;
-    } 
+    }
+    
+    if(!brd->brd_disk->part0){
+        pr_info("cow: during allocating, part0 doesn't exist\n");
+    } else {
+        pr_info("cow: during allocating, part0 exists\n");
+        pr_info("cow: checking device name (disk)->part0->bd_device: %s\n", 
+          brd->brd_disk->part0->bd_device.init_name);
+    }
 
     return 0;
 
@@ -608,17 +615,64 @@ static void brd_probe(dev_t dev)
 
 static void brd_cleanup(void)
 {
-    struct brd_device *brd, *next;
+    struct brd_device *brd, *next, *culprit_brd;
 
     debugfs_remove_recursive(brd_debugfs_dir);
 
     list_for_each_entry_safe(brd, next, &brd_devices, brd_list) {
+
+        pr_info("cow: cleaning up brd num %d\n", brd->brd_number);
+
+        if(brd->brd_number == 1) {
+          culprit_brd = brd;
+          continue;
+        }
+
         del_gendisk(brd->brd_disk);
+        pr_info("cow: del_gendisk done...\n");
+
         put_disk(brd->brd_disk);
+        pr_info("cow: put_disk done.....\n");
+
         brd_free_pages(brd);
+        pr_info("cow: brd_free_pages done....\n");
+
         list_del(&brd->brd_list);
+        pr_info("cow: list_del done....\n");
+
         kfree(brd);
+        pr_info("cow: kfree done....\n");
     }
+
+    pr_info("cow: cleaning up culprit brd num %d\n", culprit_brd->brd_number);
+
+    pr_info("cow: Freezing the queue...\n");
+    blk_mq_freeze_queue(culprit_brd->brd_disk->queue);
+
+    // pr_info("cow: quiesce the queue...\n");
+    // blk_mq_quiesce_queue(parent_brd->brd_disk->queue);
+
+    pr_info("cow: clearing the queue...\n");
+		blk_put_queue(culprit_brd->brd_disk->queue);
+
+    // pr_info("cow: destroying the queue....\n");
+    // blk_mq_destroy_queue(parent_brd->brd_disk->queue);
+    
+
+    del_gendisk(culprit_brd->brd_disk);
+    pr_info("cow: del_gendisk done...\n");
+
+    put_disk(culprit_brd->brd_disk);
+    pr_info("cow: put_disk done.....\n");
+
+    brd_free_pages(culprit_brd);
+    pr_info("cow: brd_free_pages done....\n");
+
+    list_del(&culprit_brd->brd_list);
+    pr_info("cow: list_del done....\n");
+
+    kfree(culprit_brd);
+    pr_info("cow: kfree done....\n");
 }
 
 
@@ -655,6 +709,12 @@ static int __init brd_init(void)
     const int nr = num_disks * (1 + num_snapshots);
     printk(KERN_WARNING DEVICE_NAME ": Counting NR %d\n", nr);
 
+    major_num = register_blkdev(major_num, DEVICE_NAME);
+    if (major_num <= 0) {
+      printk(KERN_WARNING DEVICE_NAME ": unable to get major number\n");
+      return -EIO;
+    }
+
     for (i = 0; i < nr; i++) {
         //printk(KERN_WARNING DEVICE_NAME ": BRD_ALLOC loop\n");
         err = brd_alloc(i);
@@ -675,10 +735,6 @@ static int __init brd_init(void)
     *	If (X / max_part) was not already created it will be created
     *	dynamically.
     */
-    if (__register_blkdev(RAMDISK_MAJOR, DEVICE_NAME, brd_probe)) {
-        err = -EIO;
-        goto out_free;
-    }
 
     pr_info("cow_brd: module loaded\n");
     printk(KERN_INFO DEVICE_NAME ": module loaded with %d disks and %d snapshots"
@@ -693,9 +749,12 @@ out_free:
 
 static void __exit brd_exit(void)
 {
-    pr_info("cow_brd: Unregistering the device");
-    unregister_blkdev(RAMDISK_MAJOR, DEVICE_NAME);
+    pr_info("cow_brd: Cleaning up the device...\n");
     brd_cleanup();
+    pr_info("cow_brd: Cleaning up the device Done. Starting to unregister...\n");
+
+    unregister_blkdev(major_num, DEVICE_NAME);
+    
     pr_info("brd: module unloaded\n");
 }
 

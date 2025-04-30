@@ -18,7 +18,12 @@ read -p "[*] disk_wrapper loaded. Press enter to unload disk_wrapper..."
 
 # Unload disk_wrapper
 echo "Removing disk_wrapper..."
-rmmod build/disk_wrapper.ko
+rmmod build/disk_wrapper.ko || exit 1
 
+read -p "[*] disk_wrapper is unloaded. Press Enter to unload cow_brd..."
+
+# Unload cow_brd
+echo "Removing cow_brd...."
+rmmod build/cow_brd.ko || exit 1
 
 echo "Done."

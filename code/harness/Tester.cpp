@@ -135,6 +135,7 @@ void Tester::EndTestSuite() {
   current_test_suite_ = NULL;
 }
 
+
 unsigned int Tester::GetPostRunDelay() {
   return fs_specific_ops_->GetPostRunDelaySeconds();
 }
@@ -183,7 +184,7 @@ int Tester::mount_wrapper_device(const char* opts) {
 }
 
 int Tester::mount_device(const char* dev, const char* opts) {
-  cout << dev <<  endl;
+  cout << "Wrapper Path: " << dev <<  endl;
   cout << "Operations : " << opts << endl;
   cout << "Mount Point: " << MNT_MNT_POINT << endl;
   cout << "fs type: " << fs_type.c_str() << endl;

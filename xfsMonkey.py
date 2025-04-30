@@ -116,8 +116,8 @@ def main():
 
     for filename in os.listdir(xfsMonkeyTestPath):
         if filename.endswith('.so'): 
-            if test_num == 2:
-                break
+            # if test_num == 2:
+            #     break
 
             #Assign a snapshot file name for replay using CrashMonkey.
             #If we have a large number of tests in the test suite, then this might blow 
