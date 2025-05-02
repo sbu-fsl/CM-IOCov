@@ -13,3 +13,38 @@ permuter/*.so
 c_harness
 *.a
 build
+# Ignored files for CrashMonkey-IOCov
+# Files like 20240908_231728-xfsMonkey.log
+*xfsMonkey.log
+# Files like ace/20240908_230612-bugWorkloadGen.log
+ace/202*-bugWorkloadGen.log
+# Files to indicate number of bugs
+bugs
+# Generated CPP workloads
+code/tests/generated_workloads/base-j-lang
+code/tests/generated_workloads/j-lang*.cpp
+# Other generated workloads (cpp files, j-lang files, base-j-lang)
+code/tests/seq1_demo/
+# Other stats files
+missing
+others
+out
+outfile
+stat
+# Compilation files
+out_compile
+# Outfiles for setup information and test results
+outfile_202*.log
+# ACE j-lang files
+ace/j-lang*
+# j-lang cpp files
+code/tests/seq*/j-lang*.cpp
+# j-lang files
+code/tests/seq*/j-lang-files/j-lang*
+code/tests/seq1/*
+# Collected & generated bug logs
+diff_results/
+cm_iocov_bugs/
+# Backup for deleted logs
+fsl_log_backups/
+diff*
