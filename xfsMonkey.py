@@ -114,6 +114,7 @@ def main():
 	xfsMonkeyTestPath = './' + parsed_args.test_path
 
 	for filename in os.listdir(xfsMonkeyTestPath):
+            
 		if filename.endswith('.so'): 
 
 			#Assign a snapshot file name for replay using CrashMonkey.

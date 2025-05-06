@@ -57,6 +57,9 @@ endif
 ifeq ($(shell [ $(KERNEL_MAJ) -eq 4 -a $(KERNEL_MIN) -eq 16 ] && echo true), true)
 DELAY_DEFINE := -DFOUR_SIXTEEN
 endif
+ifeq ($(shell [ $(KERNEL_MAJ) -eq 6 -a $(KERNEL_MIN) -eq 12 ] && echo true), true)
+DELAY_DEFINE := -DSIX_TWELVE
+endif
 ifndef CM
 DELAY_DEFINE := -DTWO_SEC
 endif
@@ -82,14 +85,22 @@ CM_SEQ1_OUT = \
 			$(BUILD_DIR)/tests/seq1/$(TEST))
 
 
-CM_GEN_EXCLUDE = base.cpp
-CM_GEN = \
-		$(patsubst %.cpp, %.so, \
-			$(filter-out $(CM_GEN_EXCLUDE), \
-					$(notdir $(wildcard $(CURDIR)/tests/generated_workloads/*.cpp))))
-CM_GEN_OUT = \
-		$(foreach TEST, $(CM_GEN), \
-			$(BUILD_DIR)/tests/generated_workloads/$(TEST))
+# CM_GEN_EXCLUDE = base.cpp
+# CM_GEN = \
+# 		$(patsubst %.cpp, %.so, \
+# 			$(filter-out $(CM_GEN_EXCLUDE), \
+# 					$(notdir $(wildcard $(CURDIR)/tests/generated_workloads/*.cpp))))
+#j-lang41480
+
+# CM_GEN := $(shell \
+# 	find $(CURDIR)/tests/generated_workloads -maxdepth 1 -name 'j-lang41480*.cpp' ! -name '$(subst $(space),' ! -name ', $(CM_GEN_EXCLUDE))' \
+# 	| xargs -n1 basename \
+# 	| sed 's/\.cpp$$/.so/')
+
+# $(info >>> CM_GEN = $(CM_GEN))
+# CM_GEN_OUT = \
+# 		$(foreach TEST, $(CM_GEN), \
+# 			$(BUILD_DIR)/tests/generated_workloads/$(TEST))
 
 
 CM_TESTS_EXCLUDE = BaseTestCase.cpp
@@ -119,11 +130,16 @@ all: \
 		seq1 \
 		permuters
 
-modules: \
+modules: build-modules move-modules
+build-modules: \
 		$(foreach MOD, $(MODULES), $(addsuffix .c, $(MOD))) \
 		$(BUILD_DIR)/Makefile
-	$(MAKE) -C $(KDIR) M=$(BUILD_DIR) src=$(CURDIR) modules
+	$(MAKE) -C $(KDIR) M=$(CURDIR) src=$(CURDIR) modules
 
+move-modules:
+	@mkdir -p $(BUILD_DIR)
+	mv -f *.ko $(BUILD_DIR)/
+	
 c_harness: \
 		$(BUILD_DIR)/c_harness
 
@@ -140,8 +156,45 @@ tests: \
 seq1: \
 		$(CM_SEQ1_OUT)
 
-gentests: \
-		$(CM_GEN_OUT)
+CM_GEN_EXCLUDE = base.cpp
+#j-lang41480
+# # of parallel jobs (default to # of cores)
+JOBS   ?= $(shell nproc)
+COMMON_OBJS := \
+    $(BUILD_DIR)/tests/BaseTestCase.o \
+    $(BUILD_DIR)/user_tools/src/actions.o \
+    $(BUILD_DIR)/user_tools/src/wrapper.o \
+    $(BUILD_DIR)/user_tools/src/workload.o \
+    $(BUILD_DIR)/utils/DiskMod.o \
+    $(BUILD_DIR)/utils/communication/BaseSocket.o \
+    $(BUILD_DIR)/utils/communication/ClientSocket.o \
+    $(BUILD_DIR)/utils/communication/ClientCommandSender.o \
+    $(BUILD_DIR)/results/DataTestResult.o
+
+.PHONY: gentests
+gentests:
+	@mkdir -p $(BUILD_DIR)/tests/generated_workloads
+	@find $(CURDIR)/tests/generated_workloads \
+	     -maxdepth 1 -type f -name 'j-lang*.cpp' \
+	     $(foreach ex,$(CM_GEN_EXCLUDE),-not -name '$(ex)') \
+	     -print0 \
+	| xargs -0 -n1 -P$(JOBS) -I{} sh -c '\
+	    src="{}"; \
+	    base="$$(basename "$$src" .cpp)"; \
+	    out="$(BUILD_DIR)/tests/generated_workloads/$$base.so"; \
+	    # echo "[Compiling] $$src → $$out"; \
+	    $(GPP) $(GOPTS) $(GOTPSSO) $(XATTR_DEF_FLAG) \
+	      -Wl,-soname,$$base.so -o "$$out" "$$src" $(COMMON_OBJS) \
+	    || echo "[FAIL] $$src"; \
+	  '
+
+# your existing pattern rule still applies:
+$(BUILD_DIR)/tests/generated_workloads/%.so: $(CURDIR)/tests/generated_workloads/%.cpp
+	@mkdir -p $(dir $@)
+	$(GPP) $(GOPTS) $(GOTPSSO) $(XATTR_DEF_FLAG) \
+	  -Wl,-soname,$*.so \
+	  -o $@ $< $(COMMON_OBJS)
+
 
 permuters: \
 		$(foreach PERMUTER, $(CM_PERMUTERS), $(BUILD_DIR)/permuter/$(PERMUTER))
@@ -234,21 +287,21 @@ $(CM_SEQ1_OUT): $(BUILD_DIR)/tests/seq1/%.so : \
 	$(GPP) $(GOPTS) $(GOTPSSO) $(XATTR_DEF_FLAG) -Wl,-soname,$(notdir $@) \
 		-o $@ $^
 
-
-$(CM_GEN_OUT): $(BUILD_DIR)/tests/generated_workloads/%.so : \
-		tests/generated_workloads/%.cpp \
-		$(BUILD_DIR)/tests/BaseTestCase.o \
-		$(BUILD_DIR)/user_tools/src/actions.o \
-		$(BUILD_DIR)/user_tools/src/wrapper.o \
-		$(BUILD_DIR)/user_tools/src/workload.o \
-		$(BUILD_DIR)/utils/DiskMod.o \
-		$(BUILD_DIR)/utils/communication/BaseSocket.o \
-		$(BUILD_DIR)/utils/communication/ClientSocket.o \
-		$(BUILD_DIR)/utils/communication/ClientCommandSender.o \
-		$(BUILD_DIR)/results/DataTestResult.o
-	mkdir -p $(@D)
-	$(GPP) $(GOPTS) $(GOTPSSO) $(XATTR_DEF_FLAG) -Wl,-soname,$(notdir $@) \
-		-o $@ $^
+# $(info >>> CM_GEN_OUT = $(CM_GEN_OUT))
+# $(CM_GEN_OUT): $(BUILD_DIR)/tests/generated_workloads/%.so : \
+# 		tests/generated_workloads/%.cpp \
+# 		$(BUILD_DIR)/tests/BaseTestCase.o \
+# 		$(BUILD_DIR)/user_tools/src/actions.o \
+# 		$(BUILD_DIR)/user_tools/src/wrapper.o \
+# 		$(BUILD_DIR)/user_tools/src/workload.o \
+# 		$(BUILD_DIR)/utils/DiskMod.o \
+# 		$(BUILD_DIR)/utils/communication/BaseSocket.o \
+# 		$(BUILD_DIR)/utils/communication/ClientSocket.o \
+# 		$(BUILD_DIR)/utils/communication/ClientCommandSender.o \
+# 		$(BUILD_DIR)/results/DataTestResult.o
+# 	mkdir -p $(@D)
+# 	$(GPP) $(GOPTS) $(GOTPSSO) $(XATTR_DEF_FLAG) -Wl,-soname,$(notdir $@) \
+# 		-o $@ $^
 
 
 $(BUILD_DIR)/tests/%.so: \

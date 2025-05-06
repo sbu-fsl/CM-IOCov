@@ -85,7 +85,7 @@ echo "Starting workload generation.."
 # Change to ace directory
 cd ace
 start=`date +%s.%3N`
-python ace.py -l $ACE_SEQ_LEN -n $ACE_NESTED -d $ACE_DEMO
+python3 ace.py -l $ACE_SEQ_LEN -n $ACE_NESTED -d $ACE_DEMO
 
 end_gen=`date +%s.%3N`
 # Now let's compile the generated tests

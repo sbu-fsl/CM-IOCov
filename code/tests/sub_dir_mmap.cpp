@@ -84,7 +84,7 @@ class echo_sub_dir_big : public BaseTestCase {
 
       void* file_data = mmap(NULL, TEST_TEXT_SIZE, PROT_WRITE, MAP_SHARED, fd,
           0);
-      if (file_data <= 0) {
+      if (file_data != 0) {
         return -1;
       }
       memcpy(file_data, text, TEST_TEXT_SIZE);

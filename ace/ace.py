@@ -1594,8 +1594,12 @@ def main():
 
 
     # Move the resultant high-level lang files to target directory. We could choose to delete them too. But if we wanted to analyze the core-ops in a workload, looking at this file is an easier way of doing it. Also if you modify the adapter, you can simply supply the directory of j-lang files to convert to cpp. No need to go through the entire generation process.
-    target = 'mv j2-lang* {}' if test_type == "xfstest-concise" else 'mv j-lang* {}'
-    subprocess.call(target.format(target_path), shell = True)
+    # target = 'mv j2-lang* {}' if test_type == "xfstest-concise" else 'mv j-lang* {}'
+    # subprocess.call(target.format(target_path), shell = True)
+    # To avoid "/bin/sh: 1: mv: Argument list too long" issue, used find and args
+    pattern = "j2-lang*" if test_type == "xfstest-concise" else "j-lang*"
+    cmd = f'find . -maxdepth 1 -name "{pattern}" -print0 | xargs -0 -I{{}} mv {{}} "{target_path}"'
+    subprocess.call(cmd, shell=True)
 
 
 if __name__ == '__main__':
