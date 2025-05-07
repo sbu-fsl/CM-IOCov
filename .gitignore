@@ -1,6 +1,7 @@
 *.ko
 *.mod.c
 *.mod.o
+*.mod
 *.o
 modules.order
 Module.symvers
@@ -42,10 +43,11 @@ code/tests/seq*/j-lang*.cpp
 # j-lang files
 code/tests/seq*/j-lang-files/j-lang*
 code/tests/seq1/*
+code/tests/seq2/*
 # Collected & generated bug logs
 diff_results/
 cm_iocov_bugs/
 # Backup for deleted logs
 fsl_log_backups/
-# Origanized bug logs
-unmodified_cm_bugs/
+.vscode/
+*.log

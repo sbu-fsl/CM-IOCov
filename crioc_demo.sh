@@ -85,7 +85,7 @@ echo "Starting workload generation.."
 # Change to ace directory
 cd ace
 start=`date +%s.%3N`
-python ace.py -l $ACE_SEQ_LEN -n $ACE_NESTED -d $ACE_DEMO
+python3 ace.py -l $ACE_SEQ_LEN -n $ACE_NESTED -d $ACE_DEMO
 
 end_gen=`date +%s.%3N`
 # Now let's compile the generated tests
@@ -119,7 +119,7 @@ if [ -d "$REPORT_DIR" ]; then
     mv "$REPORT_DIR" "${REPORT_DIR}_$(date +%Y%m%d_%H%M%S)"
 fi
 # Yifei: change 102400 to 204800, as it requires at least 200MB disk space
-python xfsMonkey.py -f /dev/sda -d /dev/cow_ram0 -t $FS -e $DEVSZKB -u $TARGET_BUILD_DIR
+python3 xfsMonkey.py -f /dev/sda -d /dev/cow_ram0 -t $FS -e $DEVSZKB -u $TARGET_BUILD_DIR
 
 end=`date +%s.%3N`
 run_time=$( echo "$end - $start" | bc -l)
