@@ -8,11 +8,10 @@ namespace {
 
 constexpr char kMkfsStart[] = "mkfs -t ";
 constexpr char kFsckCommand[] = "fsck -T -t ";
-constexpr char kBtrfsCommand[] = "mkfs.btrfs ";
 constexpr char kExtRemountOpts[] = "errors=remount-ro";
 // Disable lazy init for now.
 constexpr char kExtMkfsOpts[] =
-  "-E lazy_itable_init=0,lazy_journal_init=0";
+  "-E lazy_itable_init=0,lazy_journal_init=0"; 
 
 // TODO(ashmrtn): See if we actually want the repair flag or not. The man page
 // for btrfs check is not clear on whether it will try to cleanup the file
@@ -117,8 +116,7 @@ unsigned int ExtFsSpecific::GetPostRunDelaySeconds() {
 constexpr char BtrfsFsSpecific::kFsType[];
 
 string BtrfsFsSpecific::GetMkfsCommand(string &device_path) {
-  // return string(kMkfsStart) + BtrfsFsSpecific::kFsType + " " +  device_path;
-  return string(kBtrfsCommand) +  device_path;
+  return string(kMkfsStart) + BtrfsFsSpecific::kFsType + " " +  device_path;
 }
 
 string BtrfsFsSpecific::GetPostReplayMntOpts() {

@@ -76,33 +76,33 @@ reset=$(tput sgr0)
 
 # Starting workload generation..
 # Let's use the restricted bounds defined by -d flag in the workload generator
-echo "Cleaning up the target workload directory"
-if [ -d "$WORKLOAD_DIR" ]; then
-    mv "$WORKLOAD_DIR" "${WORKLOAD_DIR}_$(date +%Y%m%d_%H%M%S)"
-fi
+# echo "Cleaning up the target workload directory"
+# if [ -d "$WORKLOAD_DIR" ]; then
+#     mv "$WORKLOAD_DIR" "${WORKLOAD_DIR}_$(date +%Y%m%d_%H%M%S)"
+# fi
 
-echo "Starting workload generation.."
-# Change to ace directory
-cd ace
+# echo "Starting workload generation.."
+# # Change to ace directory
+# cd ace
 start=`date +%s.%3N`
-python3 ace.py -l $ACE_SEQ_LEN -n $ACE_NESTED -d $ACE_DEMO
+# python3 ace.py -l $ACE_SEQ_LEN -n $ACE_NESTED -d $ACE_DEMO
 
 end_gen=`date +%s.%3N`
-# Now let's compile the generated tests
-cd -
+# # Now let's compile the generated tests
+# cd -
 
-# Before starting compilation, let's cleanup the target directories, just to be sure we'll run only the demo workloads. Also, copy generated workloads to TARGET_DIR
-if [ -d "$TARGET_DIR" ]; then
-    mv "$TARGET_DIR" "${TARGET_DIR}_$(date +%Y%m%d_%H%M%S)"
-fi
-mkdir -p "$TARGET_DIR"
+# # Before starting compilation, let's cleanup the target directories, just to be sure we'll run only the demo workloads. Also, copy generated workloads to TARGET_DIR
+# if [ -d "$TARGET_DIR" ]; then
+#     mv "$TARGET_DIR" "${TARGET_DIR}_$(date +%Y%m%d_%H%M%S)"
+# fi
+# mkdir -p "$TARGET_DIR"
 
-# To fix "cp: argument list too long" error, use find and xargs
-# cp $WORKLOAD_DIR/j-lang*.cpp $TARGET_DIR/
-find "$WORKLOAD_DIR" -maxdepth 1 -name "j-lang*.cpp" -print0 | xargs -0 cp -t "$TARGET_DIR" || { echo "Workload CPP files copy failed. Exiting."; exit 1; }
+# # To fix "cp: argument list too long" error, use find and xargs
+# # cp $WORKLOAD_DIR/j-lang*.cpp $TARGET_DIR/
+# find "$WORKLOAD_DIR" -maxdepth 1 -name "j-lang*.cpp" -print0 | xargs -0 cp -t "$TARGET_DIR" || { echo "Workload CPP files copy failed. Exiting."; exit 1; }
 
-echo "Workload generation complete. Compiling workloads.."
-make gentests > out_compile 2>&1
+# echo "Workload generation complete. Compiling workloads.."
+# make gentests > out_compile 2>&1
 
 end_compile=`date +%s.%3N`
 
@@ -119,7 +119,7 @@ if [ -d "$REPORT_DIR" ]; then
     mv "$REPORT_DIR" "${REPORT_DIR}_$(date +%Y%m%d_%H%M%S)"
 fi
 # Yifei: change 102400 to 204800, as it requires at least 200MB disk space
-python xfsMonkey.py -f /dev/sda -d /dev/cow_ram0 -t $FS -e $DEVSZKB -u $TARGET_BUILD_DIR
+python3 xfsMonkey.py -f /dev/sda -d /dev/cow_ram0 -t $FS -e $DEVSZKB -u $TARGET_BUILD_DIR
 
 end=`date +%s.%3N`
 run_time=$( echo "$end - $start" | bc -l)

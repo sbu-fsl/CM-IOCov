@@ -50,3 +50,5 @@ cm_iocov_bugs/
 # Backup for deleted logs
 fsl_log_backups/
 .vscode/
+*.log
+*.patch
