@@ -17,3 +17,5 @@ original_cm_only = list(files_original_cm - files_cm_iocov)
 
 print("Only in cm_iocov:", cm_iocov_only)
 print("Only in original_cm:", original_cm_only)
+print("Length of cm_iocov:", len(cm_iocov_only))
+print("Length of original_cm:", len(original_cm_only))
