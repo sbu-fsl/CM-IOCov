@@ -214,11 +214,16 @@ def analyze_test_results(df, diff_results_dir, log_a, log_b):
                 match_found = True
 
                 # Check for "Passed" or "Failed" in the same line
-                if "Passed" in line_b:
-                    target_count += 1
-                    passed_b.append(filename)
+                if "Passed" in line_b or "Could not run" in line_b:
 
+                    if "Passed" in line_b:
+                        passed_b.append(filename)
+                    elif "Could not run" in line_b:
+                        could_not_run_b.append(filename)
+
+                    target_count += 1
                     log_msg = ""
+
                     for jdx, line_a in enumerate(log_lines_a):
                         if pattern.search(line_a):
                             block = []
@@ -233,8 +238,6 @@ def analyze_test_results(df, diff_results_dir, log_a, log_b):
                 elif "Failed" in line_b:
                     failed_b.append(filename)
 
-                elif "Could not run" in line_b:
-                    could_not_run_b.append(filename)
                 break
 
         if not match_found:
@@ -285,9 +288,11 @@ def compare_bugs(df, diff_res_path, log_a, log_b, res_dir):
 
     file_count, found_b, not_found_b, passed_b, failed_b, could_not_run_b = analyze_test_results(df, diff_res_path, log_a, log_b)
     
-   
+    # Considering passed and could not run testcases as target bug
+    considered_bug = passed_b + could_not_run_b
+
     # Copy the bug details files for reporting
-    # copy_bug_details(passed_b, diff_res_path, os.path.join(cur_dir, "Bug_Details"))
+    copy_bug_details(considered_bug, diff_res_path, os.path.join(cur_dir, "Bug_Details"))
 
     # Get test workload
     # cpp_path = "code/tests/generated_workloads"
@@ -296,7 +301,7 @@ def compare_bugs(df, diff_res_path, log_a, log_b, res_dir):
 
     workload_path = os.path.join(remote_base_path_iocov, workload_dir)
     local_path = os.path.join(cur_dir, "Test_Workload")
-    # fetch_workload(remote_host_iocov, workload_path, passed_b, local_path)
+    fetch_workload(remote_host_iocov, workload_path, considered_bug, local_path)
 
     return file_count, found_b, not_found_b, passed_b, failed_b, could_not_run_b
 
@@ -406,6 +411,8 @@ def make_bug_report(df, parent_dir):
             df.loc[idx, cons_field] = consequence_list["content_mismatch"]
         elif "Failed stating the file" and "rename" in operations:
             df.loc[idx, cons_field] = consequence_list["rename_not_perssist"]
+        elif "DIFF: Content Mismatch" in log_data:
+            df.loc[idx, cons_field] = consequence_list["block_lost"]
 
 
 
@@ -483,17 +490,27 @@ def generate_all_bugs():
         df_orig.to_excel(writer, sheet_name=sheet_orig_details, index=False)
 
 
+
 def remove_duplicate(sheet_details, sheet_unique):
-    # Reading data
+    # Read the data
     df = pd.read_excel(report_file, sheet_name=sheet_details)
 
-    df_unique = df.drop_duplicates(subset=["Bug Consequence", "Operation Sequence"])
+    # Group by the two columns and aggregate the test cases into a comma-separated list
+    df_grouped = (
+        df.groupby(["Bug Consequence", "Operation Sequence"])["Test Workload Name"]
+        .apply(lambda x: ", ".join(sorted(set(x.dropna()))))  # Remove NaN, deduplicate, sort
+        .reset_index()
+        .rename(columns={"Test Workload Name": "Test Workloads"})  # Rename for clarity
+    )
 
+    # Write to another sheet
     with pd.ExcelWriter(report_file, mode='a', if_sheet_exists='replace', engine="openpyxl") as writer:
-        df_unique.to_excel(writer, sheet_name=sheet_unique, index=False, columns=["Bug Consequence", "Operation Sequence"])
-
-
-
+        df_grouped.to_excel(
+            writer,
+            sheet_name=sheet_unique,
+            index=False,
+            columns=["Test Workloads", "Bug Consequence", "Operation Sequence"]
+        )
 
 
 
