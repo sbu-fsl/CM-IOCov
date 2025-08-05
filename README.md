@@ -1,74 +1,72 @@
 # CrashMonkey and Ace #
 
-![Status](https://img.shields.io/badge/Version-Experimental-brightgreen.svg)
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+CM-IOCov is an enhanced crash-consistency testing tool based on the [Original CrashMonkey](https://www.cs.utexas.edu/~vijay/papers/osdi18-crashmonkey.pdf) framework. It extends CrashMonkey by improving syscall argument diversity (i.e., input coverage) and integrating the IOCov framework, which introduces input and output coverage as new metrics for evaluating the effectiveness of file system testing. This updated version supports modern Linux kernels version 6.12, with substantial updates to the kernel modules and testing infrastructure.
 
-## Bounded Black-Box Crash Testing ##
-Bounded black-box crash testing (B<sup>3</sup>) is a new approach to testing file-system crash consistency. B<sup>3</sup> is a black-box testing approach which requires **no modification** to file-system code. B<sup>3</sup> exhaustively generates and tests workloads in a bounded space. We implement B<sup>3</sup> by building two tools - CrashMonkey and Ace. The OSDI'18 paper **Finding Crash-Consistency Bugs with Bounded Black-Box Crash Testing** has a detailed discussion of B<sup>3</sup>, CrashMonkey, and Ace. <br>
-[[Paper PDF](https://www.cs.utexas.edu/~vijay/papers/osdi18-crashmonkey.pdf)] [[Slides](http://www.cs.utexas.edu/~vijay/papers/osdi18-crashmonkey-slides.pdf)] [[Bibtex](http://www.cs.utexas.edu/~vijay/bibtex/osdi18-crashmonkey.bib)]  [[Talk video](https://youtu.be/BmhKbGoCyqo)]
-
-CrashMonkey and Ace have found several long-standing bugs in widely-used file systems like btrfs and F2FS. The tools work out-of-the-box with any POSIX file system: no modification required to the file system. 
+The updated CM-IOCov and Ace tools have uncovered several long-standing crash-consistency bugs in widely used file systems such as Btrfs on Linux 6.12. These tools work out-of-the-box with any POSIX-compliant file system—no modifications to file system code are required.
 
 ### CrashMonkey ###
 CrashMonkey is a file-system agnostic record-replay-and-test framework. Unlike existing tools like dm-log-writes which require a manual checker script, CrashMonkey automatically tests for data and metadata consistency of persisted files. CrashMonkey needs only one input to run - the workload to be tested. We have described the rules for writing a workload for CrashMonkey [here](docs/workload.md). More details about the internals of CrashMonkey can be found [here](docs/CrashMonkey.md).
 
 
 ### Automatic Crash Explorer (Ace) ###
-Ace is an automatic workload generator, that exhaustively generates sequences of file-system operations (workloads), given certain bounds. Ace consists of a workload synthesizer that generates workloads in a high-level language which we call J-lang. A CrashMonkey adapter, that we built, converts these workloads into C++ test files that CrashMonkey can work with. We also have an XFSTest adapter that allows us to convert workloads into bash scripts to be used with [xfstest](https://github.com/kdave/xfstests). More details on the current bounds imposed by Ace and guidelines on workload generation can be found [here](docs/Ace.md).
+Ace is an automatic workload generator, that exhaustively generates sequences of file-system operations (workloads), given certain bounds. Ace consists of a workload synthesizer that generates workloads in a high-level language which we call J-lang. A CrashMonkey adapter, that we built, converts these workloads into C++ test files that CrashMonkey can work with. More details on the current bounds imposed by Ace and guidelines on workload generation can be found [here](docs/Ace.md).
 
-CrashMonkey and Ace can be used out of the box on any Linux filesystem that implements POSIX API. Our tools have been tested to work with ext2, ext3, ext4, xfs, F2FS, and btrfs, across Linux kernel versions - 3.12, 3.13, 3.16, 4.1, 4.4, 4.15, 4.16, 5.5 and 5.6.
+CrashMonkey and Ace can be used out of the box on any Linux file system that implements the POSIX API. The tools have been tested and verified to work with Btrfs on Linux kernel version 6.12.
 
 ### Results ###
-We have tested four Linux file systems (ext4, xfs, btrfs, F2FS) and two verified file systems: [FCSQ](https://github.com/mit-pdos/fscq) and the [Yxv6](https://github.com/locore/yggdrasil) file system.
+We tested the Btrfs file system on Linux kernel version 6.12. Our enhanced tool, CM-IOCov, identified 74.1% more test failures (potential crash-consistency bugs) compared to the original CrashMonkey. These results demonstrate the effectiveness of input coverage–driven testing in uncovering bugs that traditional approaches may miss.
 
-Ace and Crashmonkey have found 8 previously undiscovered bugs in btrfs, 2 in F2FS, and 1 bug in FSCQ. 
 
-**FSCQ bug**. The FSCQ bug would result in fdatasync not persisting data correctly to the file system. The bug was in the unverified part of the file system, in the Haskell-C bindings, due to an optimization that was not fully tested. The authors have acknowledged and [fixed the bug](https://github.com/mit-pdos/fscq/commit/97b50eceedf15a2c82ce1a5cf83c231eb3184760). 
 
 ## Table Of Contents ##
 1. [Setup](#setup)
 2. [Push Button Testing for Seq-1 Workloads](#push-button-testing-for-seq-1-workloads)
 3. [Tutorial on Workload Generation and Testing](#tutorial)
-4. [Demo](#demo)
-   * [Video](https://youtu.be/6fiomPVK8o0)
-5. [List of Bugs Reproduced by CrashMonkey and Ace](reproducedBugs.md)
-6. [List of New Bugs Found by CrashMonkey and Ace](newBugs.md)
-7. [Research That Uses Our Tools](#research-that-uses-our-tools)
-8. [Contact Info](#contact-info)
-
-#### Advanced Documentation ####
-
-1. VM Setup and Deployment
-    * [Setting up a VM](docs/vmsetup.md)
-    * [Deploying CrashMonkey on a Cluster](docs/deploy.md)
-        - [Deployment on the Chameleon Cloud](docs/chameleon.md)
-2. [CrashMonkey](docs/CrashMonkey.md)
-    * [Running CrashMonkey as a Standalone](docs/CrashMonkey.md#running-as-a-standalone-program)
-    * [Running CrashMonkey as a Background Process](docs/CrashMonkey.md#running-as-a-background-process)
-    * [Writing a workload for CrashMonkey](docs/workload.md)
-    * [XfsMonkey](docs/xfsMonkey.md)
-3. [Ace](docs/Ace.md)
-    * [Bounds used by Ace](docs/Ace.md#bounds-used-by-ace)
-    * [Generating Workloads with Ace](docs/Ace.md#generating-workloads-with-ace)
-    * [Generalizing Ace](docs/Ace.md#generalizing-ace)
-
 
 ## Setup ##
 
 Here is a checklist of dependencies to get CrashMonkey and Ace up and running on your system.
-* You need a Linux machine to get started. We recommend spinning up a Ubuntu 16.04 VM with one of the supported kernel versions mentioned above. 20GB disk space and 2-4GB of RAM is recommended, especially if you plan on running large tests.
-* If you want to install kernel 4.16, we have a [script](vm_scripts/install-4.16.sh) to help you.
-* Install dependencies.
+* To get started, you’ll need a Linux machine. We recommend setting up an Ubuntu 22.04 VM with Linux kernel version 6.12. For running large-scale tests, it’s best to allocate at least 500GB of disk space and 64GB of RAM.
+* To manually install Linux kernel version 6.12, you can follow steps similar to those outlined in [this guide](https://www.cyberciti.biz/tips/compiling-linux-kernel-26.html). Although the guide is for an earlier kernel version, the instructions remain largely applicable to 6.12.
+* Before compiling the kernel, disable the following security-related options to avoid compatibility issues:
 
-  `apt-get install git make gcc g++ libattr1-dev btrfs-tools f2fs-tools xfsprogs libelf-dev linux-headers-$(uname -r) python3 python3-pip`
+    <pre><code>
+    scripts/config --disable CONFIG_MODULE_SIG
+    scripts/config --set-str CONFIG_SYSTEM_TRUSTED_KEYS ""
+    scripts/config --set-str CONFIG_SYSTEM_REVOCATION_KEYS ""
+    scripts/config --disable CONFIG_MODULE_SIG_FORCE
+    scripts/config --disable CONFIG_SECURITY
+    scripts/config --disable CONFIG_SECURITY_SELINUX
+    scripts/config --disable CONFIG_SECURITY_APPARMOR
+    scripts/config --disable CONFIG_SECURITY_YAMA
+    scripts/config --disable CONFIG_KEYS
+    </code></pre>
+
+   After making the changes, update the kernel configuration and compile.
+
+* Install the necessary system packages and Python libraries:
+
+  `apt-get install git make gcc g++ libattr1-dev btrfs-progs f2fs-tools xfsprogs libelf-dev python3 python3-pip`
 
   `python3 -m pip install progress progressbar`
-  
-  ` Ensure your glibc version is 2.23 or above (Check using ldd --version)`
 
+* Since you manually compiled the kernel, the headers are not available through the standard Ubuntu repositories. You must generate and install them manually:
+
+     *** Navigate to kernel source code ***
+
+	`cd /home/user/linux-6.12` 
+
+    `sudo make headers_install INSTALL_HDR_PATH=/usr/src/linux-headers-6.12.0`
+
+    This installs only the user-space headers (i.e., the include/ directory). These are sufficient for compiling user-level programs but not for building kernel modules. To enable kernel module compilation, create a symbolic link from the full kernel source tree:
+
+    `sudo ln -s /home/user/linux-6.12 /lib/modules/6.12.0/build`
+
+    This ensures that tools looking for kernel build headers can locate the complete source tree.
+  
 *  Clone the repository.
 
-    `git clone https://github.com/utsaslab/crashmonkey.git`
+    `git clone https://github.com/sbu-fsl/CM-IOCov.git`
 
 * Compile CrashMonkey's test harness, kernel modules and the test suite of seq-1 workloads (workloads with 1 file-system operation). The initial compile should take a minute or less.
 
@@ -84,10 +82,10 @@ Here is a checklist of dependencies to get CrashMonkey and Ace up and running on
 This repository contains a pre-generated suite of 328 seq-1 workloads (workloads with 1 file-system operation) [here](code/tests/seq1/). Once you have [set up](#setup) CrashMonkey on your machine (or VM), you can simply run :
 
 ```python
-python xfsMonkey.py -f /dev/sda -d /dev/cow_ram0 -t btrfs -e 102400 -u build/tests/seq1/ > outfile
+python xfsMonkey.py -f /dev/sda -d /dev/cow_ram0 -t btrfs -e 204800 -u build/tests/seq1/ > outfile
 ```
 
-Sit back and relax. This is going to take about 12 minutes to complete if run on a single machine. This will run all the 328 tests of seq-1 on a `btrfs` file system `100MB` in size. The bug reports can be found in the folder `diff_results`. The workloads are named j-lang<1-328>, and, if any of these resulted in a bug, you will see a bug report with the same name as that of the workload, describing the difference between the expected and actual state.
+Sit back and relax. This is going to take a few minutes to complete if run on a single machine. This will run all the 328 tests of seq-1 on a `btrfs` file system `200MB` in size. The bug reports can be found in the folder `diff_results`. The workloads are named j-lang<1-328>, and, if any of these resulted in a bug, you will see a bug report with the same name as that of the workload, describing the difference between the expected and actual state.
 
 ## Tutorial ##
 This tutorial walks you through the workflow of workload generation to testing, using a small bounded space of seq-1 workloads. Generating and running the tests in this tutorial will take less than 2 minutes.
@@ -141,78 +139,55 @@ To generate workloads conforming to the above mentioned bounds, run the followin
 
 4. **Run** : Now its time to test all these workloads using CrashMonkey. Run the xfsMonkey script, which simply invokes CrashMonkey in a loop, testing one workload at a time.
 
-    For example, let's run the generated tests on the `btrfs` file system, on a `100MB` image.
+    For example, let's run the generated tests on the `btrfs` file system, on a `200MB` image.
 
     ```python
-    python xfsMonkey.py -f /dev/sda -d /dev/cow_ram0 -t btrfs -e 102400 -u build/tests/generated_workloads/ > outfile
+    python xfsMonkey.py -f /dev/sda -d /dev/cow_ram0 -t btrfs -e 204800 -u build/tests/generated_workloads/ > outfile
     ```
 
 5. **Bug Reports** : The generated bug reports can be found at `diff_results`. If the test file "x" triggered a bug, you will find a bug report with the same name in this directory.
 
-    For example, j-lang1.cpp will result in a crash-consistency bug on btrfs, as on kernel 4.16 ([Bug #7](newBugs.md)). The corresponding bug report will be as follows.
+    For example, j-lang22937.cpp will result in a crash-consistency bug on btrfs, as on kernel 6.12 . The corresponding bug report will be as follows.
 
 ```    
-automated check_test:
-                failed: 1
+DIFF: Content Mismatch /foo
 
-DIFF: Content Mismatch /A/foo
-
-Actual (/mnt/snapshot/A/foo):
----File Stat Atrributes---
-Inode     : 258
-TotalSize : 0
-BlockSize : 4096
-#Blocks   : 0
-#HardLinks: 1
-
-
-Expected (/mnt/cow_ram_snapshot2_0/A/foo):
----File Stat Atrributes---
-Inode     : 258
-TotalSize : 0
-BlockSize : 4096
-#Blocks   : 0
-#HardLinks: 2
-```
-
-
-  Similarly, j-lang4.cpp results in the incorrect block count bug ([bug #8](newBugs.md)) on btrfs as of kernel 4.16. The corresponding bug report is as shown below.
-
-```
-automated check_test:
-                failed: 1
-
-DIFF: Content Mismatch /A/foo
-
-Actual (/mnt/snapshot/A/foo):
+/mnt/snapshot/foo:
+---Directory Atrributes---
+Name   : 
+Inode  : 18446744073709551615
+Offset : -1
+Length : 65535
+Type   : �
 ---File Stat Atrributes---
 Inode     : 257
-TotalSize : 32768
+TotalSize : 65537
 BlockSize : 4096
-#Blocks   : 64
+#Blocks   : 136
 #HardLinks: 1
+Mode      : 33188
+User ID   : 0
+Group ID  : 0
+Device ID : 0
+RootDev ID: 49
 
 
-Expected (/mnt/cow_ram_snapshot2_0/A/foo):
+/mnt/cow_ram_snapshot3_0/foo:
+---Directory Atrributes---
+Name   : 
+Inode  : 18446744073709551615
+Offset : -1
+Length : 65535
+Type   : �
 ---File Stat Atrributes---
 Inode     : 257
-TotalSize : 32768
+TotalSize : 65537
 BlockSize : 4096
-#Blocks   : 128
+#Blocks   : 2056
 #HardLinks: 1
+Mode      : 33188
+User ID   : 0
+Group ID  : 0
+Device ID : 0
+RootDev ID: 51
 ```
-
-
-## Demo ##
-All these steps have been assembled for you in the script [here](demo.sh). The link to the demo video is [here](https://youtu.be/6fiomPVK8o0). Try out the demo by running `./demo.sh btrfs`
-
-
-## Research that uses our tools ##
-1. *Barrier-Enabled IO Stack for Flash Storage*. Youjip Won, Hanyang University; Jaemin Jung, Texas A&M University; Gyeongyeol Choi, Joontaek Oh, and Seongbae Son, Hanyang University; Jooyoung Hwang and Sangyeun Cho, Samsung Electronics. Proceedings of the 16th USENIX Conference on File and Storage Technologies (FAST 18). [Link](https://www.usenix.org/conference/fast18/presentation/won)
-2. *Bringing Order to Chaos: Barrier-Enabled I/O Stack for Flash Storage*. Youjin Won, Joontaek Oh, Jaemin Jung, Gyeongyeol Choi, Seongbae Son, Jooyoung Hwang, and Sangyeun Cho. "Bringing Order to Chaos: Barrier-Enabled I/O Stack for Flash Storage." ACM Transactions on Storage (TOS) 14, no. 3 (2018): 24. 2018. ACM Transactions on Storage (TOS), 14(3), p.24. [Link](https://dl.acm.org/citation.cfm?id=3242091)
-3. *LineFS: Efficient SmartNIC Offload of a Distributed File System with Pipeline Parallelism*. Jongyul Kim, Insu Jang, Waleed Reda, Jaeseong Im, Marco Canini, Dejan Kostic, Youngjin Kwon, Simon Peter, Emmett Witchel. Proceedings of the ACM SIGOPS 28th Symposium on Operating Systems Principles (SOSP 21).
-[Link](https://www.cs.utexas.edu/users/witchel/pubs/kim21sosp-linefs.pdf)
-4. *A file system for safely interacting with untrusted USB flash drives*. Ke Zhong, University of Pennsylvania; Zhihao Jiang and Ke Ma, Shanghai Jiao Tong University; Sebastian Angel, University of Pennsylvania. HotStorage 2020. [Link](https://www.usenix.org/conference/hotstorage20/presentation/zhong)
-
-## Contact Info ##
-Please contact us at vijay@cs.utexas.edu with any questions. Drop us a note if you are using or plan to use CrashMonkey or Ace to test your file system.

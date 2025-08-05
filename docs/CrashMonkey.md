@@ -8,21 +8,15 @@ CrashMonkey is a file-system agnostic testing framework for file-system crash co
 4. A user space test harness which coordinates everything
 
 
-The HotStorage'17 paper *CrashMonkey: A Framework to Automatically Test File-System Crash Consistency* has a more detailed explanation of the internals of CrashMonkey. <br>
-[[Paper PDF]( http://www.cs.utexas.edu/~vijay/papers/hotstorage17-crashmonkey.pdf)] [[Slides](http://www.cs.utexas.edu/~vijay/papers/hotstorage17-crashmonkey-slides.pdf)] [[Bibtex](http://www.cs.utexas.edu/~vijay/bibtex/hotstorage17-crashmonkey.bib)]
-
 CrashMonkey also makes use of common Linux file-system checker and repair programs like `fsck` in cases where the recovered file-system image is unmountable.
 
 ___
 ### Getting Setup ###
 
 #### Setting Up a VM ####
-The easiest (and recommended) way to start working on (or using) CrashMonkey is to setup a virtual machine and run everything in the VM. This is partly so that any bugs in the kernel module don't bring down your whole system and partly because it is easier. Take a look at our [VM setup guide](vmsetup.md) to get started.
+The easiest (and recommended) way to start working on (or using) CrashMonkey is to setup a virtual machine and run everything in the VM. This is partly so that any bugs in the kernel module don't bring down your whole system and partly because it is easier. Take a look at our [setup guide](../README.md/#setup) to get started.
 
- **CrashMonkey is known to work on kernel versions 3.13.0-121-generic, 4.4.0-62-generic, 4.9.0-040900rc8-generic, 4.15.0-041500-generic, and 4.16.0-041600rc7-generic.**
-
-#### Dependencies and Build ####
-Before you begin compilation, ensure you have satisfied all dependencies mentioned in the [setup guide](../README.md/#setup)
+ **CrashMonkey is tested and confirmed to work on the latest Linux kernel version 6.12**
 
 #### Compiling CrashMonkey ####
 CrashMonkey can be built simply by running `make` in the root directory of the repository. This will build all the needed kernel modules, tests, and test harness components needed to run CrashMonkey. CrashMonkey is compiled to have a writeback delay of 2s by default. CrashMonkey waits for `writeback delay` amount of time, before unmounting the file system, to ensure pending writes (if any) are propagated to disk. This 2s delay works fine if you simulate crashes after persistence operations such as fsync(). However, if you want to test a workload by crashing at places other than persistence operations, then build using `CM=1 make`. This ensures that an appropriate [writeback delay](https://github.com/utsaslab/crashmonkey/blob/master/code/harness/FsSpecific.h) is set for each file system.
@@ -54,7 +48,7 @@ least provide the following:
 
 Other useful flags that CrashMonkey supports are:
 
-* `-e` - the size of file system image in KB. Some filesystem like btrfs and F2FS require a minimum of 100MB partition. So `102400` is a safe option that works across all tested file systems. Default is 10MB.
+* `-e` - the size of file system image in KB. Some filesystem like btrfs and F2FS require a minimum of 200MB partition. So `204800` is a safe option that works across all tested file systems. Default is 200MB.
 
 * `-P` - this flag ensures that the recorded block IOs are replayed in order. Skipping this flag allows CrashMonkey to permute block IOs within barrier operations. Optionally, if you skip the -P flag, you might want to include the `-s` flag to indicate how many permuted crash states you want to test. The default is to test 10K states.
 
@@ -75,8 +69,8 @@ directories. Once the test completes, open up the `<date_timestamp>-rename_root_
 file to see a printout of what tests failed and why.
 
 2. **Creates and Deletes Workload**. To run a workload that creates, writes to and deletes files(default set to 10 files), on the ext4 file system, use the following command:
-`./c_harness -f /dev/vda -d /dev/cow_ram0 -t ext4 -e 10240 -l create -v tests/create_delete.so` This sets the size of the file system to 10MB (with a block size of 1024), and saves the snapshot to a log file named create. To load this snapshot and rerun the test, simply run:
-`./c_harness -f /dev/vda -d /dev/cow_ram0 -t ext4 -e 10240 -r create -v tests/create_delete.so` This is useful in cases where you modify the check_test method in the workload to add additional checks for each crash state (in this example - crashmonkey/code/tests/create_delete.cpp). As long as the bio sequence during profiling does not change, it is safe to rerun the tests by loading the saved profile with -r option.
+`./c_harness -f /dev/vda -d /dev/cow_ram0 -t ext4 -e 204800 -l create -v tests/create_delete.so` This sets the size of the file system to 10MB (with a block size of 1024), and saves the snapshot to a log file named create. To load this snapshot and rerun the test, simply run:
+`./c_harness -f /dev/vda -d /dev/cow_ram0 -t ext4 -e 204800 -r create -v tests/create_delete.so` This is useful in cases where you modify the check_test method in the workload to add additional checks for each crash state (in this example - crashmonkey/code/tests/create_delete.cpp). As long as the bio sequence during profiling does not change, it is safe to rerun the tests by loading the saved profile with -r option.
 
 #### Running as a Background Process ####
 There are currently no scripts or pre-defined `make` rules for running CrashMonkey as a background process. However, an example of how to run a simple CrashMonkey smoke test in background mode is shown below. **Before running either of these tests, you will have to create a directory at `/mnt/snapshot` for the test harness to mount test devices at.**
@@ -85,7 +79,7 @@ There are currently no scripts or pre-defined `make` rules for running CrashMonk
 1. shell 1: `make`
 1. shell 1: `cd build`
 1. shell 2: `cd build`
-1. shell 1: `sudo ./c_harness -f /dev/sda -t ext2 -d /dev/cow_ram0 -e 10240 -b tests/rename_root_to_sub.so`
+1. shell 1: `sudo ./c_harness -f /dev/sda -t ext2 -d /dev/cow_ram0 -e 204800 -b tests/rename_root_to_sub.so`
     1. `-e` specifies the RAM block device size to use in KB
     1. `-f` specifies another block device to copy IO scheduler flags from
 1. shell 2: `sudo mkdir /mnt/snapshot/test_dir`
@@ -140,5 +134,3 @@ If you run into system crashes etc. from a buggy CrashMonkey kernel module you m
     * Make the `disk_wrapper` work on volumes that span multiple block devices
     * Clean up the interface for generating crash states
 
-### Contact Info ###
-You can direct CrashMonkey related queries to  [ashmrtn@utexas.edu](mailto:ashmrtn@utexas.edu). Please don't spam this email and please begin your subject line with `CrashMonkey:` because I do filter my messages.
