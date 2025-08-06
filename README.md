@@ -13,6 +13,32 @@ Ace is an automatic workload generator, that exhaustively generates sequences of
 
 CrashMonkey and Ace can be used out of the box on any Linux file system that implements the POSIX API. The tools have been tested and verified to work with Btrfs on Linux kernel version 6.12.
 
+
+### Kernel 6.12 Compatibility Changes ###
+To support kernel version 6.12, we made the following modifications:
+* code/bio_alias.h: 
+    * Updated macros to work with newer Linux kernels.
+
+* code/cow_brd.c
+    * Replaced radix trees with xarrays, updating all related operations.
+    * Adjusted code to match the new kernel APIs.
+    * Simplified disk and queue handling. The queue is now managed automatically when   setting up the gendisk for block devices.
+
+* code/disk_wrapper.c
+    * Updated macros and API usage for compatibility with newer kernels.
+    * Improved how block I/O requests are sent to the cow_brd device after logging.
+    * Simplified the disk setup by removing separate queue allocation.
+    * Removed the single-queue dispatch flag (QUEUE_FLAG_SQ_SCHED) from the logging device setup.
+
+* code/Makefile
+    * Modified the module build process: modules are now compiled directly in the source directory, and additional commands have been added to move them into the build/ directory after compilation.
+    * Enabled compilation support for large-scale workload sets.
+
+
+These changes ensure that CM-IOCov functions correctly with Linux kernel 6.12 and improve compatibility, reliability, and maintainability going forward.
+
+
+
 ### Results ###
 We tested the Btrfs file system on Linux kernel version 6.12. Our enhanced tool, CM-IOCov, identified 74.1% more test failures (potential crash-consistency bugs) compared to the original CrashMonkey. These results demonstrate the effectiveness of input coverage–driven testing in uncovering bugs that traditional approaches may miss.
 

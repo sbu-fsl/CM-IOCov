@@ -1,3 +1,23 @@
+/*
+* Copyright (c) 2024–2025 Yifei Liu
+* Copyright (c) 2024–2025 Geoff Kuenning 
+* Copyright (c) 2024–2025 Md. Kamal Parvez
+* Copyright (c) 2024–2025 Scott Smolka
+* Copyright (c) 2024–2025 Erez Zadok
+* Copyright (c) 2024–2025 Stony Brook University
+* Copyright (c) 2024–2025 The Research Foundation of SUNY
+*
+* This software is released under the Apache License, Version 2.0.
+* You may obtain a copy of the License at:
+*     http://www.apache.org/licenses/LICENSE-2.0
+*
+* This work is associated with the paper:
+* "Enhanced File System Testing through Input and Output Coverage,"
+* published in the Proceedings of the ACM SYSTOR 2025.
+*/
+
+
+
 #include <fcntl.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
