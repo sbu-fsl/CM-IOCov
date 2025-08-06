@@ -48,3 +48,9 @@ cm_iocov_bugs/
 # Backup for deleted logs
 fsl_log_backups/
 diff*
+backup*
+code/tests/generated_workloads*
+code/tests/seq2/*
+kamal_script*
+out_compile*
+output*.log
