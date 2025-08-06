@@ -24,6 +24,8 @@ bugs
 # Generated CPP workloads
 code/tests/generated_workloads/base-j-lang
 code/tests/generated_workloads/j-lang*.cpp
+code/tests/seq1/
+code/tests/seq2/
 # Other generated workloads (cpp files, j-lang files, base-j-lang)
 code/tests/seq1_demo/
 # Other stats files
@@ -52,3 +54,8 @@ fsl_log_backups/
 .vscode/
 *.log
 *.patch
+backup/
+diff_results*
+out_compile*
+kamal_script/
+code/tests/generated_workloads/

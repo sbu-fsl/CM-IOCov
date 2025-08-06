@@ -49,6 +49,7 @@ export num_vms=`cat ~/.bashrc | grep num_vms | cut -d '=' -f2`
 # Start all the vms
 ./start_all_vms.sh
 
+
 # Wait for a minute for all VMs to start
 echo 'Sleeping for a minute...'
 sleep 60

@@ -1,19 +1,32 @@
 # Chameleon Cloud Setup #
 
 ### Creating Instances ##
-1. Create a new lease. Lease option will be under 'Reservations' tab on the left. Create a new lease with some min nodes and max nodes with the filters as node_type: Compute_haswell and local_gb >= 120 (since we will need to run more VMs and each VM will need 10 GB).  
+1. Select TACC site and create a new lease. Lease option will be under 'Reservations' tab on the left. Create a new lease with some min nodes and max nodes with the filters as node_type: Compute_haswell and local_gb >= 120 (since we will need to run more VMs and each VM will need 10 GB).  
 2. Once the lease is created, go to Instances page by clicking on 'Compute' tab on the left.
 3. Click on launch instance and do the following
   1.  Give some instance name, select the appropriate lease and give the number of nodes you want to create.  
-  2. Select 'CC-Ubuntu16.04' as the Source.  
-  3. Select 'baremetal' as the flavor.  
-  4. Select a key-pair you created, if not create one and assign it.  
-  5. Select 'Launch instance'.
+  2. Select 'CC-Ubuntu22.04-20230301' as the Source.  
+  3. Select 'baremetal' as the flavor. 
+  4. Select sharednet as network options 
+  5. Select a key-pair you created, if not create one and assign it.  
+  6. Select 'Launch instance'.
 5. If you have enough hosts, the instances will be launched (the initial build process takes around 10-15 minutes).  
 6. You need to associate a floating IP to each of the instances created (you can manage the floating IPs through 'Network' tab on the left).  
 7. Once all this is done, you should be able to ping the machine using the floating IP.  
 8. To ssh into the machines, you need the private key, let's call it crashmonkey.pem  
    `ssh -i <path_to_pem_file> cc@<floating_ip>`
+    May get permission denied issue.
+    Edit Config file: sudo vim /etc/ssh/sshd_config
+    Add:
+        PubkeyAuthentication yes
+        AuthorizedKeysFile .ssh/authorized_keys
+        PermitRootLogin prohibit-password
+        PasswordAuthentication no
+        ChallengeResponseAuthentication no
+        UsePAM yes
+
+    Restart ssh: sudo systemctl restart ssh
+
 9. In order to be able to cssh to the nodes, add the IdentityFile config to your ~/.ssh/config file by adding the following line.
 ```
 Host <floating_ip>
