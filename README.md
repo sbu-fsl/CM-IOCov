@@ -28,7 +28,27 @@ input and output coverage for file system testing tools.
 
 ## Branches
 
+This repository provides multiple branches to distinguish between the original
+CrashMonkey and CM-IOCov, as well as kernel version support:
 
+- **master**  
+  The original [CrashMonkey](https://github.com/utsaslab/crashmonkey) codebase
+  without CM-IOCov modifications. CrashMonkey supports Linux kernels up to
+  **5.6**.
+
+- **cmiocov-base**  
+  Baseline CM-IOCov branch built on top of CrashMonkey, supporting the same
+  kernel versions as the original CrashMonkey (up to Linux 5.6).
+
+- **crashmonkey-linux-6.12**  
+  CrashMonkey adapted to support Linux kernel **6.12**, extending kernel
+  compatibility beyond 5.6.
+
+- **cm-iocov-linux-6.12**  
+  CM-IOCov adapted to support Linux kernel **6.12**, with extended input
+  coverage functionality in addition to the newer kernel support.
+
+---
 
 ## Usage
 
