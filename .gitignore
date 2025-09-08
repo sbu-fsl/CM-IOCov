@@ -49,3 +49,5 @@ cm_iocov_bugs/
 fsl_log_backups/
 # Origanized bug logs
 unmodified_cm_bugs/
+# History files
+.history/
