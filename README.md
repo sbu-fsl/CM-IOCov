@@ -36,6 +36,22 @@ input and output coverage for file system testing tools.
 
 ## Citation 
 
+```
+@INPROCEEDINGS{systor25cmiocov,
+  TITLE =        "Enhanced File System Testing through Input and Output Coverage",
+  AUTHOR =       "Yifei Liu and Geoff Kuenning and Md. Kamal Parvez and Scott Smolka and Erez Zadok",
+  BOOKTITLE =    "Proceedings of the 18th ACM International Systems and Storage Conference (SYSTOR '25)",
+  ADDRESS =      "Virtual Event",
+  MONTH =        "September",
+  YEAR =         "2025",
+  PUBLISHER =    "ACM",
+}
+```
+
+---
 
 ## Contact
 
+For any question, please feel free to contact Yifei Liu ([yifeliu@cs.stonybrook.edu](mailto:yifeliu@cs.stonybrook.edu))
+and Erez Zadok ([ezk@cs.stonybrook.edu](mailto:ezk@cs.stonybrook.edu)).
+Alternatively, you can create an issue in this repository.
